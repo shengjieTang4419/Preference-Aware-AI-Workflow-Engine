@@ -44,3 +44,7 @@ storage/
 upload/
 /executions/
 .checkpoints/
+.local/
+
+# Frontend
+frontend/node_modules/
