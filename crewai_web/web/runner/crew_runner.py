@@ -1,5 +1,10 @@
 """
-Crew 异步执行引擎
+Crew 异步执行引擎 - 使用责任链模式
+
+执行流程：
+    PreHandleEvent → BusinessEventDispatcher → FinishEvent → TouchEvent
+                            ↓
+                    Strategy.schedule(BusinessEvents)
 """
 import asyncio
 import logging
@@ -9,10 +14,7 @@ from typing import Optional, Tuple
 
 from crewai_web.web.services import execution_service
 from crewai_web.web.domain.execution import ExecutionStatus
-from crewai_web.web.runner.dynamic_crew_builder import DynamicCrewBuilder
 from crewai_web.web.runner.execution_logger import ExecutionLogger
-from crewai_web.web.runner.execution_result_saver import ExecutionResultSaver
-from crewai_web.web.runner.evolution_context_builder import EvolutionContextBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -25,9 +27,12 @@ def _sync_run_crew(
     output_dir: str
 ) -> Tuple[bool, str, Optional[str], Optional[dict]]:
     """
-    同步执行 Crew
+    同步执行 Crew - 使用责任链模式
     返回: (success, logs, error, evolution_context)
     """
+    from crewai_web.core.chain.event_chain import build_default_chain
+    from crewai_web.core.chain.events.base_event import ExecutionContext
+    
     exec_logger = ExecutionLogger(exec_id, lambda level, msg: execution_service.append_log(exec_id, level, msg))
     evolution_context = None
 
@@ -45,39 +50,29 @@ def _sync_run_crew(
         inputs = getattr(exec_meta, 'inputs', None) or {}
         exec_logger.info(f"Inputs: {inputs}")
 
-        # 构建 Crew
-        exec_logger.info("Building crew...")
-        builder = DynamicCrewBuilder(crew_id=crew_id, requirement=requirement, output_dir=Path(output_dir))
-        exec_logger.info(f"Crew: {builder.crew_config.name}, Agents: {len(builder.agent_configs)}, Tasks: {len(builder.task_configs)}")
+        # 构建执行上下文
+        exec_logger.info("Building execution context...")
+        ctx = ExecutionContext(
+            crew_id=crew_id,
+            requirement=requirement,
+            inputs=inputs,
+            exec_id=exec_id,
+            output_dir=output_dir,
+            input_folder=input_folder,
+        )
 
-        crew = builder.build_crew(inputs=inputs)
-        exec_logger.info(f"Crew built with {len(crew.tasks)} tasks")
+        # 构建并执行责任链
+        exec_logger.info("Executing chain: PreHandle → Business → Finish → Touch")
+        chain = build_default_chain()
+        ctx = chain.execute(ctx)
 
-        # 执行
-        exec_logger.info("Executing crew...")
-        result = crew.kickoff(inputs=inputs)
-        result_text = str(result)
+        result_text = ctx.result or ""
         exec_logger.info(f"Execution completed! Result: {len(result_text)} chars")
 
-        # 保存结果
-        saver = ExecutionResultSaver(Path(output_dir))
-        saver.save_result(
-            exec_id=exec_id,
-            requirement=requirement,
-            crew_name=builder.crew_config.name,
-            result_text=result_text,
-            input_folder=input_folder,
-            crew_id=crew_id,
-            process_type=builder.crew_config.process_type,
-        )
-
-        # 构建偏好进化上下文
-        evolution_context = EvolutionContextBuilder.build_context(
-            exec_id=exec_id,
-            requirement=requirement,
-            builder=builder,
-            result_text=result_text,
-        )
+        # 构建偏好进化上下文（从 ctx.extras 获取）
+        evolution_context = ctx.extras.get("evolution_context")
+        if evolution_context:
+            exec_logger.info("Evolution context prepared")
 
         exec_logger.info("=== Execution Completed ===")
 
@@ -85,7 +80,7 @@ def _sync_run_crew(
         execution_service.update_execution_status(
             exec_id,
             ExecutionStatus.COMPLETED,
-            logs_summary=f"Completed {len(crew.tasks)} tasks. Result: {result_text[:200]}..."
+            logs_summary=f"Completed {len(ctx.task_configs)} tasks. Result: {result_text[:200]}..."
         )
 
         return True, exec_logger.get_all_logs(), None, evolution_context

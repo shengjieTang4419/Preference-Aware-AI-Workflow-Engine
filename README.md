@@ -1,350 +1,319 @@
 # Preference-Aware AI Workflow Engine
 
-### 一个会学习你偏好的 AI 工作流引擎
+### An AI workflow engine that learns your preferences
 
 [![Python 3.13+](https://img.shields.io/badge/Python-3.13%2B-blue.svg)](https://python.org)
 [![CrewAI](https://img.shields.io/badge/Powered%20by-CrewAI-FF6B35?logo=crewai)](https://crewai.com)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi)](https://fastapi.tiangolo.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> **一次 LLM 调用给你答案，这个引擎给你会学习的 AI 工作流。**
+> **A single LLM call gives you an answer. This engine gives you an AI workflow that learns.**
 >
-> 不是更快的 AI，是越用越懂你的 AI。
+> Not faster AI — AI that understands you better over time.
+
+**English** | [中文](README_CN.md)
 
 ---
 
-## 这个项目解决什么问题
+## What Problem Does This Solve
 
-**AI 代码生成工具越来越强，但架构设计还是靠人。**
+**AI code generation tools are getting stronger, but architecture design still relies on humans.**
 
-Cursor、Windsurf、Claude Code 能帮你写代码，但没法帮你想清楚：
+Cursor, Windsurf, and Claude Code can write code for you, but they can't help you think through:
 
-- 系统分几个模块、模块之间怎么通信
-- 边界在哪里，哪些自己做，哪些用现成方案
-- 技术选型怎么平衡成本和团队能力
+- How to decompose a system into modules and how those modules communicate
+- Where the boundaries are — what to build vs. what to buy
+- How to balance tech choices against cost and team capability
 
-这个项目做的不是 AI 写代码，而是 **AI 辅助架构设计**：输入一个业务场景，输出结构化的架构设计文档 + 关键代码骨架，让程序员拿着这份文档去 IDE 里高效实现。
+This project is not about AI writing code. It's about **AI-assisted architecture design**: input a business scenario, get structured architecture documentation + key code scaffolding, then take that to your IDE for efficient implementation.
 
 ---
 
-## 核心能力
+## Core Capabilities
 
-### 1. Preference Evolution — Agent 越用越懂你
+### 1. Preference Evolution — Agents That Learn Your Style
 
 ```
-输入场景 → AI 拆解任务 → Agent 协作执行 → 结果分析 → 偏好自动更新
+Input scenario → AI decomposes tasks → Agents collaborate → Results analyzed → Preferences auto-updated
 ```
 
-每次 Crew 执行完成后，系统分析执行结果，自动提案更新 `.crew/preferences.md`。你审核通过后，下一次 Agent 自动理解你的风格。
+After each Crew execution, the system analyzes results and automatically proposes updates to `.crew/preferences.md`. Once you approve, Agents understand your style from the next run onward.
 
 ```markdown
-<!-- .crew/preferences.md — 自动进化 -->
-## 编码规范
-- 优先可读性，其次简洁
-- 必须有类型注解
-- 禁止无意义的注释
+<!-- .crew/preferences.md — auto-evolving -->
+## Coding Standards
+- Readability first, conciseness second
+- Type annotations required
+- No pointless comments
 
-## 输出风格
-- 直接给结论，不废话
-- 代码块必须有语言标识
+## Output Style
+- Get to the point, no fluff
+- Code blocks must have language identifiers
 ```
 
-**为什么有价值：** 单次 LLM 调用做不到这个。RAG 做不到这个。上下文窗口也做不到这个。Preference Evolution 需要的是一个完整的"执行 → 分析 → 提案 → 审核 → 更新"闭环。
+**Why this matters:** A single LLM call can't do this. RAG can't do this. Context windows can't either. Preference Evolution requires a full closed loop: execute → analyze → propose → review → update.
 
-### 2. 三级模型动态分配 — 成本与质量的平衡
+### 2. Three-Tier Dynamic Model Assignment — Balancing Cost and Quality
 
-不是每个任务都需要最强的模型。
+Not every task needs the most powerful model.
 
 ```
-文档整理       → Basic (qwen-turbo)     成本最低
-常规分析       → Standard (qwen-plus)   平衡
-架构设计       → Advanced (qwen-max)    质量最高
+Documentation cleanup  → Basic (qwen-turbo)      Lowest cost
+General analysis       → Standard (qwen-plus)     Balanced
+Architecture design    → Advanced (qwen-max)      Highest quality
 ```
 
-AI 根据任务复杂度自动决定用哪个模型，你也可以手动覆盖。
+AI automatically selects the model based on task complexity. You can also override manually.
 
-### 3. 完整执行过程可观测
+### 3. Full Execution Observability
 
-- **SSE 实时日志** — 看着 Agent 一步步工作
-- **执行历史** — 随时回看任意一次运行的完整记录
-- **中间产物** — 每个 Task 的输出独立可查
-- **LLM 调用记录** — 调试信息含模型 + trace_id
+- **SSE real-time logs** — Watch Agents work step by step
+- **Execution history** — Review any past run's complete record
+- **Intermediate artifacts** — Each Task's output is independently viewable
+- **LLM call traces** — Debug info includes model name + trace_id
 
 ---
 
-## 使用场景
+## Use Cases
 
-### 场景 1：架构设计（核心场景）
-
-```
-输入："帮我设计一个 SaaS 订阅管理系统，支持多租户、计费、通知"
-
-系统输出：
-├── 系统架构图
-├── 模块划分 + 职责边界
-├── 核心接口定义
-├── 技术选型建议
-├── 关键代码骨架（不是完整实现，是架构骨架）
-└── 实施路线图
-```
-
-程序员拿着这份文档，在 IDEA / Claude Code / Cursor 里实现细节。
-
-### 场景 2：任务并行加速
+### Use Case 1: Architecture Design (Core Scenario)
 
 ```
-输入："分析竞品、完成技术选型、写项目文档"
-→ Agent 1 (竞品分析) + Agent 2 (技术选型) + Agent 3 (文档撰写) 并行执行
-→ 节省一半时间
+Input: "Design a SaaS subscription management system with multi-tenancy, billing, and notifications"
+
+System output:
+├── System architecture diagram
+├── Module breakdown + responsibility boundaries
+├── Core interface definitions
+├── Technology recommendations
+├── Key code scaffolding (not full implementation — architecture skeleton)
+└── Implementation roadmap
 ```
 
-### 场景 3：长期项目，偏好积累
+Engineers take this document and implement the details in their IDE of choice.
+
+### Use Case 2: Parallel Task Acceleration
 
 ```
-第 1 次：系统学到你喜欢"简洁代码、类型注解、中文注释"
-第 5 次：Agent 自动用你的风格输出，节省大量 review 时间
-第 20 次：Agent 比新来的程序员更懂你的项目规范
+Input: "Analyze competitors, finalize tech stack, write project documentation"
+→ Agent 1 (Competitor Analysis) + Agent 2 (Tech Selection) + Agent 3 (Documentation) run in parallel
+→ Saves half the time
+```
+
+### Use Case 3: Long-Term Projects, Accumulated Preferences
+
+```
+Run 1:   System learns you prefer "clean code, type annotations, Chinese comments"
+Run 5:   Agents automatically output in your style — saves significant review time
+Run 20:  Agents understand your project conventions better than a new team member
 ```
 
 ---
 
-## 快速开始
+## Quick Start
 
 ```bash
-# 1. 克隆
+# 1. Clone
 git clone https://github.com/YOUR_USERNAME/preference-workflow-engine.git
 cd preference-workflow-engine
 
-# 2. 配置
+# 2. Configure
 cp .env.example .env
-# 编辑 .env，设置 DASHSCOPE_API_KEY（支持 Claude / OpenAI / Ollama）
+# Edit .env — set DASHSCOPE_API_KEY and/or CLAUDE_API_KEY
 
-# 3. 启动
+# 3. Start
 make backend   # → http://localhost:8000/docs
 make frontend  # → http://localhost:5173
 
-# 4. 使用
-# 浏览器打开 → 输入场景 → 看着 Agent 工作 → 查看结果
+# 4. Use
+# Open browser → Enter a scenario → Watch Agents work → View results
 ```
 
-**示例输入：**
-> "帮我设计一个微服务电商系统，包含用户、订单、支付三个模块，支持多租户"
+**Example input:**
+> "Design a microservice e-commerce system with user, order, and payment modules, supporting multi-tenancy"
 
-系统自动完成：任务拆解 → Agent 匹配/创建 → Skills 推荐（可选） → 模型分配 → Crew 执行 → SSE 实时日志 → 结果沉淀
+The system automatically: decomposes tasks → matches/creates Agents → recommends Skills (optional) → assigns models → executes Crew → streams real-time logs → persists results
 
 ---
 
-## 架构图
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                      Frontend (Vue 3)                       │
-│         对话 · Agent 管理 · 执行历史 · 产物浏览             │
+│       Chat · Agent Management · Execution History · Files   │
 └─────────────────────────────┬───────────────────────────────┘
                               │ SSE / REST
 ┌─────────────────────────────▼───────────────────────────────┐
 │                     FastAPI (crewai_web)                    │
 │                                                              │
 │  ┌─────────────┐  ┌──────────────┐  ┌────────────────────┐  │
-│  │  编排器      │  │  Agent 生成器 │  │  Skills 推荐器   │  │
+│  │ Orchestrator │  │Agent Generator│  │ Skills Recommender │  │
 │  └─────────────┘  └──────────────┘  └────────────────────┘  │
 │  ┌─────────────┐  ┌──────────────┐  ┌────────────────────┐  │
-│  │ 模型路由器   │  │  Crew 执行器  │  │  偏好进化服务     │  │
+│  │ Model Router │  │ Crew Executor │  │ Preference Evolver │  │
 │  └─────────────┘  └──────────────┘  └────────────────────┘  │
 │                         │                                     │
 │              ┌──────────▼──────────┐                          │
-│              │     触达层（规划中）  │                          │
-│              │  自动触达各类模型服务 │                          │
-│              └────────────────────┘                          │
+│              │   Touch Layer (WIP)  │                          │
+│              │  Auto-dispatch to    │                          │
+│              │  external AI services│                          │
+│              └─────────────────────┘                          │
 └─────────────────────────────┬───────────────────────────────┘
                               │
 ┌─────────────────────────────▼───────────────────────────────┐
-│                      LLM 层                                  │
+│                        LLM Layer                             │
 │  ┌─────────────────┐  ┌──────────────────┐                │
 │  │  DashScope       │  │  Claude / OpenAI  │                │
-│  │  通义千问全家桶  │  │  OpenRouter 等    │                │
+│  │  (Qwen models)   │  │  OpenRouter, etc. │                │
 │  └─────────────────┘  └──────────────────┘                │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**两层 AI 调用分离：**
+**Two-layer AI call separation:**
 
-| 层级 | 职责 | 使用模型 |
-|------|------|---------|
-| **系统 AI** | 元操作（任务拆解、模型分配、偏好进化提案） | Standard（固定） |
-| **执行 AI** | 实际工作（分析、架构、文档、代码骨架） | 自动分配 |
-
----
-
-## 与竞品对比
-
-| 能力 | 本项目 | CrewAI | Dify | AutoGen |
-|------|--------|--------|------|---------|
-| **Preference Evolution** | ✅ 自动闭环 | ❌ | ❌ | ❌ |
-| **动态模型分配** | ✅ 3级自动路由 | ⚠️ 手动 | ⚠️ 手动 | ❌ |
-| **架构文档输出** | ✅ 核心能力 | ❌ | ❌ | ❌ |
-| **触达层** | ✅ 规划中 | ❌ | ❌ | ❌ |
-| **国产模型（通义千问）** | ✅ 原生支持 | ⚠️ | ✅ | ❌ |
-| **SSE 实时日志** | ✅ 完整 | ❌ | ⚠️ | ❌ |
-| **Skills 自动推荐** | ✅ 可选非阻塞 | ❌ | ❌ | ❌ |
-| **开源** | ✅ MIT | ✅ | ✅ | ✅ |
-
-**差异化定位：** 不是 AI 写代码工具，而是 AI 架构设计 Copilot。
+| Layer | Responsibility | Model Used |
+|-------|---------------|------------|
+| **System AI** | Meta-operations (task decomposition, model assignment, preference proposals) | Standard (fixed) |
+| **Execution AI** | Actual work (analysis, architecture, documentation, code scaffolding) | Auto-assigned |
 
 ---
 
-## 技术栈
+## Comparison
 
-| 层级 | 技术 |
-|------|------|
-| **Agent 编排** | [CrewAI](https://crewai.com) |
-| **后端 API** | FastAPI + Pydantic v2 + Uvicorn |
-| **前端** | Vue 3 + TypeScript + Element Plus |
-| **LLM 提供方** | DashScope（原生）、Anthropic、OpenAI、OpenRouter、Ollama |
-| **持久化** | JSON 文件（`storage/`）— 可升级 |
-| **Python 管理** | `uv` |
+| Capability | This Project | CrewAI | Dify | AutoGen |
+|-----------|-------------|--------|------|---------|
+| **Preference Evolution** | ✅ Auto closed-loop | ❌ | ❌ | ❌ |
+| **Dynamic model assignment** | ✅ 3-tier auto-routing | ⚠️ Manual | ⚠️ Manual | ❌ |
+| **Architecture doc output** | ✅ Core capability | ❌ | ❌ | ❌ |
+| **Touch layer** | ✅ Planned | ❌ | ❌ | ❌ |
+| **Chinese LLMs (Qwen)** | ✅ Native support | ⚠️ | ✅ | ❌ |
+| **SSE real-time logs** | ✅ Full | ❌ | ⚠️ | ❌ |
+| **Skills auto-recommendation** | ✅ Optional, non-blocking | ❌ | ❌ | ❌ |
+| **Open source** | ✅ MIT | ✅ | ✅ | ✅ |
+
+**Differentiator:** Not an AI coding tool — an AI architecture design copilot.
 
 ---
 
-## 项目结构
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Agent Orchestration** | [CrewAI](https://crewai.com) |
+| **Backend API** | FastAPI + Pydantic v2 + Uvicorn |
+| **Frontend** | Vue 3 + TypeScript + Element Plus |
+| **LLM Providers** | DashScope (Qwen models, native), Claude (Anthropic) |
+| **Persistence** | JSON files (`storage/`) — upgradeable |
+| **Python Management** | `uv` |
+
+---
+
+## Project Structure
 
 ```
 crewai_web/
 ├── core/
-│   ├── ai/            # LLM 客户端 + 工厂（多 Provider）
-│   ├── llm/           # Provider 实现（dashscope、anthropic...）
-│   ├── preferences/    # 偏好加载器 + 注入
-│   └── tools/         # Skill / Tool 加载器
+│   ├── ai/            # LLM client + prompt loader
+│   ├── llm/           # Provider implementations (DashScope, Claude)
+│   ├── chain/         # Chain-of-responsibility execution engine
+│   └── tools/         # Skill / Tool loader
 ├── web/
-│   ├── services/      # 业务逻辑（编排器、Agent 生成器...）
-│   ├── api/           # FastAPI 路由
-│   └── domain/        # Pydantic 模型
-└── prompts/           # LLM Prompt 模板
+│   ├── services/      # Business logic (orchestrator, agent generator, preference evolution...)
+│   ├── api/           # FastAPI routes
+│   ├── domain/        # Pydantic models
+│   └── runner/        # Crew execution engine
+└── prompts/           # LLM prompt templates
 
-frontend/src/           # Vue 3 单页应用
+frontend/src/           # Vue 3 SPA
 .crew/
-├── system_rules.md    # 系统规则（静态，手动维护）
-└── preferences.md    # 个人偏好（动态，自动进化）
+├── system_rules.md    # System rules (static, manually maintained)
+└── preferences.md     # Personal preferences (dynamic, auto-evolving)
 ```
 
 ---
 
-## 现状
+## Current Status
 
-**已完成 MVP：**
-- [x] 全链路：场景 → 任务拆解 → Agent 匹配/创建 → Skills 推荐 → Crew 组装 → 执行 → 结果沉淀
-- [x] 偏好自动注入 Agent system prompt
-- [x] 三级模型配置 + LLM 工厂
-- [x] SSE 实时执行日志
-- [x] 执行历史 + 产物浏览
-- [x] Web UI（Agent / Task / Crew / Skills 管理）
-- [x] 国产 LLM（通义千问）原生支持
-- [x] LLM 调试记录（模型 + trace_id）
-
----
-
-## 功能规划（Roadmap）
-
-以下功能正在规划中，按优先级排序。
-
-### Preference Evolution 2.0 — 规则标签化管理
-
-把偏好规则当作**人的标签**来管理，实现精细化自适应：
-
-| 特性 | 说明 |
-|------|------|
-| **整合压缩** | 定期将语义相近的规则合并，避免 system prompt 臃肿，节省 token |
-| **置信度机制** | 命中越多的规则置信度越高，优先匹配高置信度规则 |
-| **规则溯源** | 每条规则记录来源（哪次执行、哪个场景），形成可信凭证 |
-| **冲突检测** | 当两条规则冲突时，用置信度对比解决；若置信度接近，则向用户询问确认 |
-| **竞争队列** | 新规则携带置信度，与历史规则竞争，只有胜出的规则才能驻留 |
-
-```
-执行结果 → 提取新规则 → 置信度计算 → 竞争队列对比 → 整合/冲突处理 → 提案
-                                                                    ↓
-用户审核（必须） ← 必须人工 review 介入，保证规则质量          ← diff 展示
-```
-
-### 触达层 — 自动触达各类模型服务
-
-不要把 AI 局限在"写代码"。架构文档确认后，系统可以自动触达：
-
-- **代码生成** → Claude Code / Cursor（指定工作空间，自动生成代码）
-- **行业报告** → 通义千问 / Kimi（文档润色、结构化输出）
-- **音乐 / 视频生成** → 对应模型服务（Midjourney、Suno、即梦等）
-- **数据处理** → Python / SQL 执行服务
-
-```
-架构文档（用户确认）→ 触达层分发 → 各类模型服务 → 产物自动回流
-                              ↑
-                       人工 Review（必须）
-```
-
-**核心逻辑：** 用户确认架构文档 → 触达层自动分发 → 人工 Review → 产物沉淀。所有自动触达前必须经过人工确认。
-
-### 多租户隔离
-
-为团队协作和企业使用做准备：
-
-- 独立偏好空间（每个用户/团队有自己独立的 `.crew/` 目录）
-- 独立执行历史
-- 独立 Skills 库
-
-### OpenRouter 统一接入层
-
-不绑定单一模型服务商：
-
-- 通过 OpenRouter 接入全球主流模型（Claude、GPT、DeepSeek、Gemini...）
-- 模型质量/价格对比自动推荐
-- 模型可切换、可对比
-
-### Crew 流程编排增强
-
-官方只支持顺序模式和层级模式，扩展：
-
-- **异步并行模式** — 独立任务真正并行执行，节省时间
-- **条件路由** — 根据执行结果动态决定下一个 Agent
-- **Pipeline 模式** — 数据流驱动的管道式处理
+**MVP completed:**
+- [x] Full pipeline: scenario → task decomposition → Agent matching/creation → Skills recommendation → Crew assembly → execution → result persistence
+- [x] Auto-injection of preferences into Agent system prompts
+- [x] Three-tier model configuration + LLM factory
+- [x] SSE real-time execution logs
+- [x] Execution history + artifact browsing
+- [x] Web UI (Agent / Task / Crew / Skills management)
+- [x] Native Chinese LLM support (Qwen via DashScope)
+- [x] LLM debug logging (model + trace_id)
 
 ---
 
-## 定位说明
+## Roadmap
+
+The following features are planned, listed by priority.
+
+### Preference Evolution 2.0 — Rule Tagging System
+
+Manage preference rules as **tags**, enabling fine-grained adaptation:
+
+| Feature | Description |
+|---------|-------------|
+| **Consolidation** | Periodically merge semantically similar rules to keep system prompts lean and save tokens |
+| **Confidence scoring** | Rules triggered more frequently gain higher confidence; high-confidence rules are prioritized |
+| **Rule provenance** | Each rule tracks its origin (which execution, which scenario), forming an audit trail |
+| **Conflict detection** | When rules conflict, resolve by confidence comparison; if confidence is close, ask the user |
+| **Competitive queue** | New rules carry confidence scores and compete with existing rules; only winners stay |
+
+### Touch Layer — Auto-Dispatch to External AI Services
+
+Don't limit AI to "writing code." After architecture docs are confirmed, the system can auto-dispatch to:
+
+- **Code generation** → Claude Code / Cursor
+- **Industry reports** → Qwen / Kimi
+- **Music / Video generation** → Midjourney, Suno, etc.
+- **Data processing** → Python / SQL execution services
+
+### More Planned
+
+- **Multi-tenancy** — Independent preference spaces, execution history, and Skills per user/team
+- **OpenRouter unified access** — Connect to global mainstream models
+- **Enhanced Crew orchestration** — Async parallel, conditional routing, pipeline mode
+
+---
+
+## Positioning
 
 ```
-AI 代码工具（Cursor / Windsurf / Claude Code）
-  → 解决"怎么写"
-  → 赛道拥挤、商品化
-  → 直接竞争，必输
+AI coding tools (Cursor / Windsurf / Claude Code)
+  → Solve "how to write"
 
-AI 架构设计工具（本项目）
-  → 解决"怎么设计"
-  → 把复杂场景拆解成可执行的架构文档
-  → 程序员拿着文档去 IDE 实现
-  → 未来：文档 → AI 自动触达各类模型服务
+AI architecture design tool (this project)
+  → Solve "how to design"
+  → Decompose complex scenarios into actionable architecture docs
+  → Engineers take the docs to their IDE for implementation
 ```
 
-程序员的价值从"写代码"转向"架构设计 + 边界定义 + 人工 Review"。AI 负责拆解和分析，人负责判断和决策。
+The developer's value shifts from "writing code" to "architecture design + boundary definition + human review." AI handles decomposition and analysis; humans handle judgment and decisions.
 
 ---
 
 ## License
 
-MIT License — 个人和商业使用均免费。
+MIT License — free for personal and commercial use.
 
 ---
 
-## 关于这个项目
+## About This Project
 
-这个项目起源于一个简单的好奇：**CrewAI 里的 "Crew" 是什么意思，它怎么玩的？**
+This project started from a simple curiosity: **What does "Crew" mean in CrewAI, and how does it work?**
 
-抱着这个问题，一边学一边写，从一个玩票的探索变成了一个完整的 AI 工作流引擎。
+Driven by that question, building while learning, what started as an experiment became a complete AI workflow engine.
 
-起点是一个人，好奇心驱动。没有融资，没有团队，只有一个真实的判断：AI Agent 的价值不在于"帮你写代码"，而在于"帮你把复杂的事情拆解清楚"。
+It started with one person, driven by curiosity. No funding, no team — just one honest assessment: the value of AI Agents isn't in "writing code for you," but in "helping you decompose complex problems clearly."
 
-这个判断对不对，用时间证明。
+Whether that's right — time will tell.
 
 ---
 
-> **设计理念**
+> **Design Philosophy**
 >
-> 这个项目面向那些希望 AI Agent 能持续学习、而不是每次都重新开始的开发者。核心洞察：**最有价值的 AI 系统不是模型最强的那个，而是最懂你的那个。**
+> This project is for developers who want AI Agents that continuously learn, rather than starting from scratch every time. Core insight: **The most valuable AI system isn't the one with the strongest model — it's the one that understands you best.**

@@ -150,7 +150,28 @@ system_prompt = loader.get_system_prompt(
 )
 ```
 
-### 3. 禁用自动注入（特殊场景）
+### 3. 偏好注入机制（何时注入 / 何时不注入）
+
+系统中有两种 AI 交互场景，注入策略不同：
+
+| 场景 | 说明 | 是否注入偏好 |
+|------|------|-------------|
+| **系统内置 AI 交互** | Topic 生成、Tasks 拆解、Agent 创建、Skills 推荐等 | ❌ `inject_preferences=False` |
+| **Crew 动态编排** | Agent 执行用户的实际任务（编写代码、分析数据等） | ✅ `inject_preferences=True` |
+
+**原因**：系统内置 AI 交互的 prompt 由开发者编写（在 `prompts/` 目录），已包含所有必要指令，不需要用户偏好干扰。Crew 动态编排需要根据用户偏好来执行任务。
+
+```python
+# 系统内置 AI 交互 — 不注入偏好
+prompt = client.load_prompt("generator/topic.prompt", scenario="...")
+response = await client.call_structured(prompt, TopicResponse)
+# inject_preferences 默认为 False
+
+# Crew 动态编排 — 注入偏好
+# Agent 的 system prompt 自动包含 system_rules.md + preferences.md
+```
+
+### 4. 禁用自动注入（特殊场景）
 
 ```python
 # 某些场景下可能不需要偏好（如纯文本生成）

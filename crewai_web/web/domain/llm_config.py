@@ -181,14 +181,14 @@ class LLMConfig(BaseModel):
         )
     
     def to_api_response(self) -> dict:
-        """转换为 API 响应格式（返回原始 API Key，由前端控制显示）"""
+        """转换为 API 响应格式（API Key 已脱敏，保护安全）"""
         result = {
             "default_provider": self.default_provider
         }
         
         if self.dashscope:
             result["dashscope"] = {
-                "api_key": self.dashscope.api_key,  # 返回原始 API Key
+                "api_key": self.dashscope.mask_api_key(),  # ✅ 脱敏后返回
                 "base_url": self.dashscope.base_url,
                 "basic": self.dashscope.basic.model_dump(),
                 "standard": self.dashscope.standard.model_dump(),
@@ -197,7 +197,7 @@ class LLMConfig(BaseModel):
         
         if self.claude:
             result["claude"] = {
-                "api_key": self.claude.api_key,  # 返回原始 API Key
+                "api_key": self.claude.mask_api_key(),  # ✅ 脱敏后返回
                 "base_url": self.claude.base_url,
                 "basic": self.claude.basic.model_dump(),
                 "standard": self.claude.standard.model_dump(),
