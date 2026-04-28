@@ -1,0 +1,25 @@
+[project]
+name = "crewai-web"
+version = "0.1.0"
+description = "One Person Company with Web UI - CrewAI orchestration platform"
+requires-python = ">=3.13"
+dependencies = [
+    "crewai[anthropic,litellm]>=0.80.0",
+    "crewai-tools>=0.12.0",
+    "langchain>=0.1.0",
+    "langchain-openai>=0.0.5",
+    "python-dotenv>=1.0.0",
+    "fastapi>=0.135.3",
+    "pydantic>=2.11.10",
+    "python-multipart>=0.0.24",
+    "uvicorn[standard]>=0.44.0",
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+opc = "crewai_web.__main__:main"
+opc-web = "crewai_web.web.__main__:main"
+
+[[tool.uv.index]]
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple/"
+default = true

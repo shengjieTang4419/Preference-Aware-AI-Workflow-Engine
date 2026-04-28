@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:docs.crewai.com)",
+      "WebFetch(domain:microsoft.github.io)",
+      "WebFetch(domain:langchain-ai.github.io)",
+      "WebFetch(domain:www.crewai.com)",
+      "WebFetch(domain:www.coze.com)",
+      "WebFetch(domain:dify.ai)",
+      "Bash(ls /Users/tangshengjie/workSpace/study/crewAI/one_person_company/*.md)"
+    ]
+  }
+}

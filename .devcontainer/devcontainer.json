@@ -1,0 +1,36 @@
+{
+	"name": "CrewAI - 一人公司",
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+	"mounts": [
+		"source=${localEnv:EXTERNAL_SKILLS_DIR:-${localEnv:HOME}/.claude/skills},target=/workspace/external_skills,type=bind,consistency=cached"
+	],
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"Vue.volar",
+				"dbaeumer.vscode-eslint"
+			],
+			"settings": {
+				"python.defaultInterpreterPath": "/usr/local/bin/python"
+			}
+		}
+	},
+	"postCreateCommand": "bash -c 'pip install crewai crewai-tools python-dotenv && cd /workspaces/one_person_company/frontend && npm install'",
+	"remoteEnv": {
+		"TZ": "Asia/Shanghai"
+	},
+	"forwardPorts": [8000, 5173],
+	"portsAttributes": {
+		"8000": {
+			"label": "Backend API",
+			"onAutoForward": "notify"
+		},
+		"5173": {
+			"label": "Frontend Dev",
+			"onAutoForward": "notify"
+		}
+	}
+}
