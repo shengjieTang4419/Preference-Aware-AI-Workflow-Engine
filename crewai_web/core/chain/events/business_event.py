@@ -16,6 +16,7 @@ from datetime import datetime
 from typing import Any
 
 from crewai_web.core.chain.events.base_event import BaseEvent, EventType, ExecutionContext
+from crewai_web.core.chain.strategies.scheduling_strategy import get_strategy
 
 
 class BusinessEvent:
@@ -75,8 +76,6 @@ class BusinessEventDispatcher(BaseEvent):
             ctx.log("INFO", f"[Dispatcher]   - {event}")
 
         # 2. 选择调度策略
-        from crewai_web.core.chain.strategies.scheduling_strategy import get_strategy
-
         strategy = get_strategy(process_type)
         ctx.log("INFO", f"[Dispatcher] Strategy: {strategy.name} (process_type={process_type})")
 

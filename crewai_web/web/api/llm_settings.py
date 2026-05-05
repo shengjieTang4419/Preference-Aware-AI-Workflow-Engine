@@ -1,7 +1,7 @@
 from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from crewai_web.core.llm.factory import llm_factory
+from crewai_web.core.llm.provider_registry import provider_registry
 from crewai_web.web.services.config_service import get_config_service
 
 router = APIRouter(prefix="/llm", tags=["LLM Settings"])
@@ -33,7 +33,10 @@ class LLMSettings(BaseModel):
 @router.get("/providers")
 async def list_providers():
     """获取可用的 LLM 提供商列表"""
-    return {"providers": llm_factory.list_providers(), "default_provider": llm_factory.default_provider}
+    return {
+        "providers": provider_registry.list_providers(), 
+        "default_provider": provider_registry.default_provider
+    }
 
 
 @router.get("/settings")
@@ -53,11 +56,21 @@ async def update_llm_settings(settings: LLMSettings):
 async def test_provider_connection(provider: str, model: Optional[str] = None):
     """测试 LLM 提供商连接"""
     try:
-        llm_provider = llm_factory.get_provider(provider)
+        llm_provider = provider_registry.get_provider(provider)
         if not llm_provider.validate_config():
             raise HTTPException(status_code=400, detail=f"Provider '{provider}' not configured. Check API key.")
-        test_model = model or llm_provider.get_default_model()
-        llm_provider.create_llm(test_model)
+        
+        # 如果指定了模型，使用 create_llm；否则使用 get_default_llm
+        if model:
+            llm_provider.create_llm(model)
+            test_model = model
+        else:
+            llm_provider.get_default_llm()
+            # 获取默认模型名称用于返回
+            from crewai_web.core.llm.config_loader import config_loader
+            default_tier = config_loader.get_default_tier(llm_provider.platform)
+            test_model = default_tier.model
+        
         return {"success": True, "provider": provider, "model": test_model, "message": f"Connected to {provider}/{test_model}"}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

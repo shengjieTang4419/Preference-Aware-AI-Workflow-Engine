@@ -3,9 +3,6 @@
 	"build": {
 		"dockerfile": "Dockerfile"
 	},
-	"mounts": [
-		"source=${localEnv:EXTERNAL_SKILLS_DIR:-${localEnv:HOME}/.claude/skills},target=/workspace/external_skills,type=bind,consistency=cached"
-	],
 	"customizations": {
 		"vscode": {
 			"extensions": [

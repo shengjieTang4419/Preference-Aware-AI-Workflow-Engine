@@ -24,12 +24,26 @@ class ProviderConfig(BaseModel):
     
     @property
     def default_model(self) -> ModelTierConfig:
-        """获取默认模型"""
+        """获取默认模型（is_default=true 的档位）"""
         for tier in [self.basic, self.standard, self.advanced]:
             if tier.is_default:
                 return tier
         # 如果没有设置默认，返回中级模型
         return self.standard
+    
+    def get_tier_by_model(self, model: str) -> Optional[ModelTierConfig]:
+        """根据模型名称查找对应的档位配置
+        
+        Args:
+            model: 模型名称
+            
+        Returns:
+            ModelTierConfig: 档位配置，如果找不到返回 None
+        """
+        for tier in [self.basic, self.standard, self.advanced]:
+            if tier.model == model:
+                return tier
+        return None
     
     def mask_api_key(self) -> str:
         """脱敏后的 API Key"""

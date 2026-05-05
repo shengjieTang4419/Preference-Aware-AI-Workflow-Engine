@@ -29,13 +29,21 @@ class HierarchicalStrategy(SchedulingStrategy):
 
         builder = CrewBuilder()
 
+        # 获取 agent_model_assignments
+        agent_model_assignments = getattr(ctx.crew_config, "agent_model_assignments", None) or {}
+        logger.info(f"[Hierarchical] Agent model assignments: {agent_model_assignments}")
+
         # 构建所有 Agent
         agents_map = {}
         for event in events:
             agent_id = event.task_config.agent_id
             if agent_id not in agents_map:
                 agent_config = ctx.agent_configs[agent_id]
-                agents_map[agent_id] = builder.build_agent(agent_config, ctx.inputs)
+
+                # 解析该 Agent 的模型档位
+                model_tier = agent_model_assignments.get(agent_id)
+
+                agents_map[agent_id] = builder.build_agent(agent_config, ctx.inputs, model_tier)
 
         # 构建所有 Task
         tasks_list = []
