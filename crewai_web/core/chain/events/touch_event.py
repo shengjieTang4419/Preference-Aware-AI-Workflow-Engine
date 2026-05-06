@@ -2,81 +2,69 @@
 TouchEvent - 消息触达事件
 
 责任链最后一个节点，负责：
-1. 发送执行完成通知（钉钉、企业微信、Slack 等）
-2. 触发偏好进化（如果执行成功）
+- 发送执行完成通知（钉钉、企业微信、Slack 等）
+
+注意：
+- 偏好进化已在 FinishEvent 中触发，这里不再处理
+- 只负责通知，保持职责单一
 """
 
 from crewai_web.core.chain.events.base_event import BaseEvent, EventType, ExecutionContext
+from crewai_web.core.chain.events.templates import generate_success_notification, generate_failure_notification
 from crewai_web.core.alerters import create_alerter_from_env
 
 
 class TouchEvent(BaseEvent):
-    """消息触达事件 - 通知和后续触发"""
-    
+    """消息触达事件 - 发送通知
+
+    职责：
+    - 发送执行完成/失败通知
+
+    设计原则：
+    - 单一职责：只负责通知，不处理其他业务逻辑
+    - 使用模板：通知消息由 Template 生成
+    """
+
     def __init__(self):
         super().__init__(EventType.STANDARD)
-    
+
     def handle(self, ctx: ExecutionContext) -> ExecutionContext:
-        ctx.log("INFO", "[Touch] Starting message delivery")
-        
-        # 1. 发送通知
+        """发送通知"""
+        ctx.log("INFO", "[Touch] Starting notification delivery")
+
         self._send_notification(ctx)
-        
-        # 2. 触发偏好进化
-        if ctx.success:
-            self._trigger_evolution(ctx)
-        
-        ctx.log("INFO", "[Touch] ✅ Message delivery completed")
-        
+
+        ctx.log("INFO", "[Touch] ✅ Notification delivery completed")
+
         return ctx
-    
+
     def _send_notification(self, ctx: ExecutionContext) -> None:
         """发送执行完成通知"""
         alerter = create_alerter_from_env()
         if not alerter:
             ctx.log("INFO", "[Touch] No alerter configured, skip notification")
             return
-        
+
+        # 生成通知消息（使用模板）
         crew_name = ctx.crew_config.name if ctx.crew_config else ctx.crew_id
-        duration = ctx.duration_seconds
-        
+
         if ctx.success:
-            message = (
-                f"✅ Crew 执行完成\n"
-                f"Crew: {crew_name}\n"
-                f"Execution: {ctx.exec_id}\n"
-                f"Duration: {f'{duration:.2f}s' if duration else 'N/A'}\n"
-                f"Result: {ctx.result[:200] if ctx.result else 'N/A'}..."
+            message = generate_success_notification(
+                crew_name=crew_name,
+                exec_id=ctx.exec_id,
+                duration=ctx.duration_seconds,
+                result=ctx.result,
             )
         else:
-            message = (
-                f"❌ Crew 执行失败\n"
-                f"Crew: {crew_name}\n"
-                f"Execution: {ctx.exec_id}\n"
-                f"Error: {ctx.error or 'Unknown error'}"
+            message = generate_failure_notification(
+                crew_name=crew_name,
+                exec_id=ctx.exec_id,
+                error=ctx.error,
             )
-        
+
+        # 发送通知
         try:
             alerter.send(message)
-            ctx.log("INFO", "[Touch] Notification sent")
+            ctx.log("INFO", "[Touch] Notification sent successfully")
         except Exception as e:
             ctx.log("WARNING", f"[Touch] Failed to send notification: {e}")
-    
-    def _trigger_evolution(self, ctx: ExecutionContext) -> None:
-        """
-        触发偏好进化提案
-        
-        数据已在 FinishEvent 准备好，这里只负责触发异步任务。
-        """
-        evolution_context = ctx.extras.get("evolution_context")
-        if not evolution_context:
-            ctx.log("INFO", "[Touch] No evolution context, skip evolution")
-            return
-        
-        try:
-            # TODO: 这里应该异步调用 preferences_evolution_service
-            # 目前只是标记，实际触发由外部（如 crew_runner）处理
-            ctx.log("INFO", f"[Touch] Evolution ready for exec_id={ctx.exec_id}")
-            
-        except Exception as e:
-            ctx.log("WARNING", f"[Touch] Failed to trigger evolution: {e}")

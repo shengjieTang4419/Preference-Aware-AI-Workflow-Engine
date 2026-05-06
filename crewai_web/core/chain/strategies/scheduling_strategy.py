@@ -24,6 +24,10 @@ class SchedulingStrategy(ABC):
         - 接收 N 个 BusinessEvent
         - 根据策略决定执行顺序
         - 执行并将结果写入 ctx
+
+    设计原则：
+        - 保持基类简洁，只定义接口
+        - 通用逻辑抽到 Helper 中，通过组合使用
     """
 
     @abstractmethod
@@ -83,7 +87,5 @@ def get_strategy(process_type: str) -> SchedulingStrategy:
     strategy_cls = STRATEGY_REGISTRY.get(process_type)
     if not strategy_cls:
         supported = ", ".join(STRATEGY_REGISTRY.keys())
-        raise ValueError(
-            f"Unsupported process_type '{process_type}'. Supported: {supported}"
-        )
+        raise ValueError(f"Unsupported process_type '{process_type}'. Supported: {supported}")
     return strategy_cls()

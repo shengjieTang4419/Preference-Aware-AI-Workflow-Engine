@@ -29,7 +29,7 @@
 │                   异步执行层                                  │
 │  run_crew_async()                                            │
 │  - 在线程池中执行（避免阻塞事件循环）                          │
-│  - 执行完成后触发偏好进化                                      │
+│  - 只负责异步调度，不处理业务逻辑                              │
 └────────────────────────┬────────────────────────────────────┘
                          │
                          ▼
@@ -50,7 +50,7 @@
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │  1. PreHandleEvent    → 加载配置                     │   │
 │  │  2. BusinessEventDispatcher → 业务调度（核心）       │   │
-│  │  3. FinishEvent       → 保存结果                     │   │
+│  │  3. FinishEvent       → 保存结果 + 触发偏好进化      │   │
 │  │  4. TouchEvent        → 发送通知                     │   │
 │  └──────────────────────────────────────────────────────┘   │
 └────────────────────────┬────────────────────────────────────┘
@@ -73,10 +73,9 @@
 │  └──────────────────┘         └────────────────────────┘   │
 │                                                              │
 │  职责：                                                       │
-│  1. 从 agent_model_assignments 获取模型分配                  │
-│  2. 为每个 Agent 构建 CrewAI Agent 对象                      │
-│  3. 为每个 Task 构建 CrewAI Task 对象                        │
-│  4. 创建 Crew 并执行                                          │
+│  1. 组合 CrewBuilderHelper 构建 Agents 和 Tasks             │
+│  2. 创建 Crew 并执行                                          │
+│  3. 设置 Process 类型（sequential/hierarchical）            │
 └────────────────────────┬────────────────────────────────────┘
                          │
                          ▼
@@ -286,7 +285,8 @@ CrewBuilder 中：
 - **不关心**：每个节点的内部逻辑
 
 ### PreHandleEvent
-- **职责**：加载配置（crew_config, agent_configs, task_configs）
+- **职责**：校验并加载配置（crew_config, agent_configs, task_configs）
+- **使用**：ResourceValidator、CrewValidator（组合模式）
 - **写入**：ctx.crew_config, ctx.agent_configs, ctx.task_configs
 - **不关心**：配置如何被使用
 
@@ -297,19 +297,23 @@ CrewBuilder 中：
 - **不关心**：Strategy 如何执行
 
 ### FinishEvent
-- **职责**：保存执行结果到数据库
-- **读取**：ctx.result, ctx.success, ctx.error
-- **不关心**：结果如何生成
+- **职责**：保存执行结果、生成报告、触发偏好进化
+- **读取**：ctx.result, ctx.success, ctx.error, ctx.crew_config, ctx.agent_configs, ctx.task_configs
+- **使用**：ExecutionMetadata（Domain 对象）、README Template、Notification Template
+- **触发**：异步偏好进化任务（如果执行成功）
+- **不关心**：结果如何生成、偏好进化如何执行
 
 ### TouchEvent
 - **职责**：发送执行完成通知
-- **读取**：ctx.exec_id, ctx.success
-- **不关心**：通知如何发送
+- **读取**：ctx.exec_id, ctx.success, ctx.result, ctx.error
+- **使用**：NotificationTemplate 生成通知消息
+- **不关心**：通知如何发送（由 Alerter 处理）
 
 ### SchedulingStrategy
 - **职责**：编排 BusinessEvent 的执行顺序
-- **依赖**：CrewBuilder
+- **依赖**：CrewBuilderHelper（组合模式）
 - **实现**：SequentialStrategy, HierarchicalStrategy
+- **设计原则**：组合优于继承，通过 Helper 提供通用构建逻辑
 - **不关心**：Agent 和 Task 如何构建
 
 ### CrewBuilder
@@ -350,6 +354,15 @@ CrewBuilder 中：
 ### 7. 开闭原则
 - 对扩展开放：新增 Event、新增 Strategy
 - 对修改封闭：修改配置不需要改代码
+
+### 8. 组合优于继承
+- **CrewBuilderHelper**：Strategy 通过组合使用 Helper，而不是继承基类方法
+- **Validator**：PreHandleEvent 组合 ResourceValidator 和 CrewValidator
+- **Template**：FinishEvent 和 TouchEvent 使用模板生成内容
+
+### 9. Domain 驱动设计（DDD）
+- **ExecutionMetadata**：封装执行元数据，提供 to_dict() 序列化方法
+- **Domain 对象**：表达业务概念，而不是简单的字典
 
 ---
 
@@ -405,6 +418,10 @@ CrewBuilder 中：
    ┌─────────────────────────────────────┐
    │ 7.3 FinishEvent                     │
    │   - 保存执行结果                    │
+   │   - 生成 README.md                  │
+   │   - 保存 metadata                   │
+   │   - 准备 evolution_context          │
+   │   - 触发偏好进化（异步后台任务）    │
    └─────────────────────────────────────┘
    ↓
    ┌─────────────────────────────────────┐
@@ -414,10 +431,36 @@ CrewBuilder 中：
    ↓
 8. 返回结果
    (success, logs, error)
-   ↓
-9. 触发偏好进化（如果成功）
-   asyncio.create_task(_generate_evolution_proposal())
 ```
+
+---
+
+### 偏好进化触发流程
+
+```
+1. FinishEvent.handle(ctx)
+   ↓
+2. 检查执行是否成功
+   if ctx.success:
+   ↓
+3. 准备 evolution_context
+   evolution_context = _prepare_evolution_context(ctx)
+   # 包含：exec_id, requirement, crew_config, agents_config, tasks_config, result
+   ↓
+4. 触发异步偏好进化任务
+   asyncio.create_task(_generate_evolution_proposal(evolution_service, evolution_context))
+   # 不阻塞主流程，在后台运行
+   ↓
+5. 后台生成偏好进化提案
+   proposal = await evolution_service.generate_proposal(...)
+   # 分析执行结果，生成偏好优化建议
+```
+
+**为什么在 FinishEvent 中触发？**
+- **职责清晰**：FinishEvent 负责收尾工作，偏好进化是收尾的一部分
+- **符合责任链模式**：在责任链内部处理，不需要外层知道
+- **数据完整**：此时 ctx 包含完整的执行结果
+- **不阻塞主流程**：使用 asyncio.create_task 异步执行
 
 ---
 
