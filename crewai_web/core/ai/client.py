@@ -53,7 +53,7 @@ class AIClient:
             debug_dir = os.getenv("LLM_DEBUG_DIR")
 
         # 初始化调试服务
-        self.debug_service = DebugService(enabled=debug_enabled, output_dir=debug_dir)
+        self.debug_service = DebugService(debug_enabled=debug_enabled, debug_dir=debug_dir)
 
         if debug_enabled:
             logger.info(f"🐛 LLM Debug enabled, logs will be saved to: {debug_dir or '.local/llm_debug'}")
