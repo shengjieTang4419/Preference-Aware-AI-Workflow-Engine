@@ -1,7 +1,12 @@
 """
-自定义工具模块
-统一管理 Skills 和 Tools 的加载
-"""
-from .skills import SkillsManager, get_skills_manager
+工具模块 - 按需导入子模块
 
-__all__ = ['SkillsManager', 'get_skills_manager']
+使用方式：
+- from crewai_web.core.tools.skills import SkillsManager, get_skills_manager
+- from crewai_web.core.tools.websocket_manager import ws_manager
+- from crewai_web.core.tools.execution_logger import execution_logger
+
+不在此文件导入任何子模块，避免触发不必要的依赖加载。
+"""
+
+__all__ = []

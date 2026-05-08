@@ -33,7 +33,7 @@ export const api = {
   health: {
     check: () => client.get('/health'),
   },
-  
+
   agents: {
     list: (): Promise<Agent[]> => client.get('/agents'),
     get: (id: string): Promise<Agent> => client.get(`/agents/${id}`),
@@ -41,7 +41,7 @@ export const api = {
     update: (id: string, data: Partial<Agent>): Promise<Agent> => client.put(`/agents/${id}`, data),
     delete: (id: string): Promise<void> => client.delete(`/agents/${id}`),
   },
-  
+
   tasks: {
     list: (): Promise<Task[]> => client.get('/tasks'),
     get: (id: string): Promise<Task> => client.get(`/tasks/${id}`),
@@ -49,7 +49,7 @@ export const api = {
     update: (id: string, data: Partial<Task>): Promise<Task> => client.put(`/tasks/${id}`, data),
     delete: (id: string): Promise<void> => client.delete(`/tasks/${id}`),
   },
-  
+
   crews: {
     list: (): Promise<Crew[]> => client.get('/crews'),
     get: (id: string): Promise<Crew> => client.get(`/crews/${id}`),
@@ -58,22 +58,22 @@ export const api = {
     delete: (id: string): Promise<void> => client.delete(`/crews/${id}`),
     getPlaceholders: (id: string): Promise<string[]> => client.get(`/crews/${id}/placeholders`),
   },
-  
+
   executions: {
     list: (): Promise<Execution[]> => client.get('/executions'),
     get: (id: string): Promise<Execution> => client.get(`/executions/${id}`),
     create: (data: Partial<Execution>): Promise<Execution> => client.post('/executions', data),
     getLogs: (id: string): Promise<string> => client.get(`/executions/${id}/logs`),
-    getFiles: (id: string): Promise<{ execution_id: string; output_dir: string; files: any[] }> => 
+    getFiles: (id: string): Promise<{ execution_id: string; output_dir: string; files: any[] }> =>
       client.get(`/executions/${id}/files`),
-    getFileContent: (id: string, filePath: string): Promise<{ execution_id: string; file_path: string; content: string }> => 
+    getFileContent: (id: string, filePath: string): Promise<{ execution_id: string; file_path: string; content: string }> =>
       client.get(`/executions/${id}/files/content`, { params: { file_path: filePath } }),
     getFileDownloadUrl: (execId: string, filePath: string): string =>
       `/api/executions/${execId}/files/download?file_path=${encodeURIComponent(filePath)}`,
   },
-  
+
   files: {
-    getRoots: (): Promise<{ roots: Array<{ name: string; path: string }> }> => 
+    getRoots: (): Promise<{ roots: Array<{ name: string; path: string }> }> =>
       client.get('/files/roots'),
     browse: (path: string): Promise<{
       current: string
@@ -93,15 +93,10 @@ export const api = {
   },
 
   chat: {
-    generateCrew: (scenario: string, context?: string): Promise<{
-      topic: string
-      crew_id: string
-      agent_ids: string[]
-      task_ids: string[]
-      summary: string
-    }> => client.post('/chat/generate-crew', { scenario, context }, {
-      timeout: 120000, // AI 生成需要更长时间，设置 120 秒超时
-    }),
+    generateCrew: (scenario: string, doc_filename?: string): Promise<{
+      execution_id: string
+      status: string
+    }> => client.post('/chat/generate-crew', { scenario, doc_filename }),
   },
 
   // Skills API
@@ -133,28 +128,28 @@ export const api = {
     // 获取行级 diff（用于可视化对比）
     getDiff: (execId: string): Promise<DiffView> => client.get(`/preferences/proposals/${execId}/diff`),
     // 合并提案到 preferences.md
-    mergeProposal: (execId: string): Promise<{ status: string; message: string }> => 
+    mergeProposal: (execId: string): Promise<{ status: string; message: string }> =>
       client.post('/preferences/proposals/merge', { exec_id: execId }),
     // 拒绝提案
-    rejectProposal: (execId: string, reason?: string): Promise<{ status: string }> => 
+    rejectProposal: (execId: string, reason?: string): Promise<{ status: string }> =>
       client.post('/preferences/proposals/reject', { exec_id: execId, reason }),
     // 获取当前 preferences.md 内容
-    getCurrent: (): Promise<{ content: string; file_path: string }> => 
+    getCurrent: (): Promise<{ content: string; file_path: string }> =>
       client.get('/preferences/current'),
     // 手动触发执行回顾（通常自动触发）
-    evolveFromExecution: (execId: string): Promise<{ status: string; suggestions_count: number; view_url: string }> => 
+    evolveFromExecution: (execId: string): Promise<{ status: string; suggestions_count: number; view_url: string }> =>
       client.post(`/preferences/evolve-from-execution/${execId}`),
   },
 
   // LLM 设置 API
   llm: {
-    listProviders: (): Promise<{ providers: LLMProvider[]; default_provider: string }> => 
+    listProviders: (): Promise<{ providers: LLMProvider[]; default_provider: string }> =>
       client.get('/llm/providers'),
-    getSettings: (): Promise<LLMSettings> => 
+    getSettings: (): Promise<LLMSettings> =>
       client.get('/llm/settings'),
-    updateSettings: (settings: LLMSettings): Promise<{ message: string }> => 
+    updateSettings: (settings: LLMSettings): Promise<{ message: string }> =>
       client.put('/llm/settings', settings),
-    testProvider: (provider: string, model?: string): Promise<{ success: boolean; provider: string; model: string; message: string }> => 
+    testProvider: (provider: string, model?: string): Promise<{ success: boolean; provider: string; model: string; message: string }> =>
       client.post(`/llm/test/${provider}`, null, { params: { model } }),
   },
 }

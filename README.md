@@ -67,7 +67,7 @@ AI automatically selects the model based on task complexity. You can also overri
 
 ### 3. Full Execution Observability
 
-- **SSE real-time logs** — Watch Agents work step by step
+- **WebSocket real-time progress** — Watch Crew generation step by step
 - **Execution history** — Review any past run's complete record
 - **Intermediate artifacts** — Each Task's output is independently viewable
 - **LLM call traces** — Debug info includes model name + trace_id
@@ -114,7 +114,7 @@ Run 20:  Agents understand your project conventions better than a new team membe
 
 ```bash
 # 1. Clone
-git clone https://github.com/YOUR_USERNAME/preference-workflow-engine.git
+git clone https://github.com/shengjieTang4419/Preference-Aware-AI-Workflow-Engine.git
 cd preference-workflow-engine
 
 # 2. Configure
@@ -143,17 +143,27 @@ The system automatically: decomposes tasks → matches/creates Agents → recomm
 │                      Frontend (Vue 3)                       │
 │       Chat · Agent Management · Execution History · Files   │
 └─────────────────────────────┬───────────────────────────────┘
-                              │ SSE / REST
+                              │ WebSocket / REST
 ┌─────────────────────────────▼───────────────────────────────┐
 │                     FastAPI (crewai_web)                    │
 │                                                              │
-│  ┌─────────────┐  ┌──────────────┐  ┌────────────────────┐  │
-│  │ Orchestrator │  │Agent Generator│  │ Skills Recommender │  │
-│  └─────────────┘  └──────────────┘  └────────────────────┘  │
-│  ┌─────────────┐  ┌──────────────┐  ┌────────────────────┐  │
-│  │ Model Router │  │ Crew Executor │  │ Preference Evolver │  │
-│  └─────────────┘  └──────────────┘  └────────────────────┘  │
-│                         │                                     │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  Crew Generation (Pipeline)                          │   │
+│  │  - Generate Topic → Plan Tasks → Match Agents        │   │
+│  │  - Create Crew → Assign Models → Verify              │   │
+│  │  - WebSocket real-time progress                      │   │
+│  └──────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  Crew Execution (Chain of Responsibility)            │   │
+│  │  - PreHandle → Business Dispatch → Finish → Touch    │   │
+│  │  - Sequential / Hierarchical strategies              │   │
+│  │  - Preference evolution after execution              │   │
+│  └──────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  Supporting Services                                  │   │
+│  │  - Agent Generator · Skills Recommender              │   │
+│  │  - Model Router · Preference Evolver                 │   │
+│  └──────────────────────────────────────────────────────┘   │
 │              ┌──────────▼──────────┐                          │
 │              │   Touch Layer (WIP)  │                          │
 │              │  Auto-dispatch to    │                          │
@@ -170,12 +180,17 @@ The system automatically: decomposes tasks → matches/creates Agents → recomm
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Two-layer AI call separation:**
+**Two-phase workflow:**
 
-| Layer | Responsibility | Model Used |
-|-------|---------------|------------|
-| **System AI** | Meta-operations (task decomposition, model assignment, preference proposals) | Standard (fixed) |
-| **Execution AI** | Actual work (analysis, architecture, documentation, code scaffolding) | Auto-assigned |
+| Phase | Pattern | Purpose |
+|-------|---------|---------|
+| **Crew Generation** | Pipeline (7 fixed steps) | Create Crew configuration from scenario |
+| **Crew Execution** | Chain of Responsibility + Strategy | Execute Crew tasks and evolve preferences |
+
+**Detailed architecture docs:**
+- [Crew Generation Architecture](docs/CREW_GENERATION_ARCHITECTURE.md) — Pipeline pattern, event-driven
+- [Crew Execution Architecture](docs/CREW_EXECUTION_ARCHITECTURE.md) — Chain of responsibility, strategy pattern
+- [LLM Client Architecture](docs/LLM_CLIENT_ARCHITECTURE.md) — Unified AI interaction layer
 
 ---
 
@@ -216,16 +231,27 @@ crewai_web/
 ├── core/
 │   ├── ai/            # LLM client + prompt loader
 │   ├── llm/           # Provider implementations (DashScope, Claude)
+│   ├── event/         # Event framework (BaseEvent, BusinessEvent, EventContext)
 │   ├── chain/         # Chain-of-responsibility execution engine
-│   └── tools/         # Skill / Tool loader
+│   └── tools/         # WebSocket manager, execution logger, skill loader
 ├── web/
-│   ├── services/      # Business logic (orchestrator, agent generator, preference evolution...)
-│   ├── api/           # FastAPI routes
+│   ├── events/        # Crew generation events (7 steps)
+│   ├── services/      # Business logic (pipeline, generators, evolution...)
+│   ├── api/           # FastAPI routes (REST + WebSocket)
 │   ├── domain/        # Pydantic models
 │   └── runner/        # Crew execution engine
 └── prompts/           # LLM prompt templates
 
 frontend/src/           # Vue 3 SPA
+├── api/               # API client (REST + WebSocket)
+├── composables/       # Vue composables (useWebSocket)
+└── views/             # Chat, Agent, Crew management
+
+docs/                  # Architecture documentation
+├── CREW_GENERATION_ARCHITECTURE.md
+├── CREW_EXECUTION_ARCHITECTURE.md
+└── LLM_CLIENT_ARCHITECTURE.md
+
 .crew/
 ├── system_rules.md    # System rules (static, manually maintained)
 └── preferences.md     # Personal preferences (dynamic, auto-evolving)
@@ -236,10 +262,11 @@ frontend/src/           # Vue 3 SPA
 ## Current Status
 
 **MVP completed:**
-- [x] Full pipeline: scenario → task decomposition → Agent matching/creation → Skills recommendation → Crew assembly → execution → result persistence
+- [x] **Crew Generation Pipeline**: 7-step event-driven workflow with WebSocket real-time progress
+- [x] **Crew Execution Engine**: Chain of responsibility + strategy pattern for dynamic task execution
+- [x] **Event Framework**: Template method pattern for unified logging and WebSocket push
 - [x] Auto-injection of preferences into Agent system prompts
-- [x] Three-tier model configuration + LLM factory
-- [x] SSE real-time execution logs
+- [x] Three-tier model configuration + dynamic model assignment
 - [x] Execution history + artifact browsing
 - [x] Web UI (Agent / Task / Crew / Skills management)
 - [x] Native Chinese LLM support (Qwen via DashScope)

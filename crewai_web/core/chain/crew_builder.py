@@ -11,7 +11,7 @@ from crewai import Agent, Task
 
 from crewai_web.core.ai.client import AIClient
 from crewai_web.core.llm.config_loader import config_loader
-from crewai_web.core.tools import get_skills_manager
+from crewai_web.core.tools.skills import get_skills_manager
 
 logger = logging.getLogger(__name__)
 

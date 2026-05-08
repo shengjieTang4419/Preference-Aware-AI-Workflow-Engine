@@ -67,7 +67,7 @@ AI 根据任务复杂度自动决定用哪个模型，你也可以手动覆盖�
 
 ### 3. 完整执行过程可观测
 
-- **SSE 实时日志** — 看着 Agent 一步步工作
+- **WebSocket 实时进度** — 看着 Crew 生成的每一步
 - **执行历史** — 随时回看任意一次运行的完整记录
 - **中间产物** — 每个 Task 的输出独立可查
 - **LLM 调用记录** — 调试信息含模型 + trace_id
@@ -114,7 +114,7 @@ AI 根据任务复杂度自动决定用哪个模型，你也可以手动覆盖�
 
 ```bash
 # 1. 克隆
-git clone https://github.com/YOUR_USERNAME/preference-workflow-engine.git
+git clone https://github.com/shengjieTang4419/Preference-Aware-AI-Workflow-Engine.git
 cd preference-workflow-engine
 
 # 2. 配置
@@ -143,25 +143,35 @@ make frontend  # → http://localhost:5173
 │                      Frontend (Vue 3)                       │
 │         对话 · Agent 管理 · 执行历史 · 产物浏览             │
 └─────────────────────────────┬───────────────────────────────┘
-                              │ SSE / REST
-┌─────────────────────────────▼───────────────────────────────┐
+                              │ WebSocket / REST
+┌─────────────────────────────┴───────────────────────────────┐
 │                     FastAPI (crewai_web)                    │
 │                                                              │
-│  ┌─────────────┐  ┌──────────────┐  ┌────────────────────┐  │
-│  │  编排器      │  │  Agent 生成器 │  │  Skills 推荐器   │  │
-│  └─────────────┘  └──────────────┘  └────────────────────┘  │
-│  ┌─────────────┐  ┌──────────────┐  ┌────────────────────┐  │
-│  │ 模型路由器   │  │  Crew 执行器  │  │  偏好进化服务     │  │
-│  └─────────────┘  └──────────────┘  └────────────────────┘  │
-│                         │                                     │
-│              ┌──────────▼──────────┐                          │
-│              │     触达层（规划中）  │                          │
-│              │  自动触达各类模型服务 │                          │
-│              └────────────────────┘                          │
+│  ┌──────────────────────────────────────────────┐   │
+│  │  Crew 生成（Pipeline）                          │   │
+│  │  - 生成主题 → 规划任务 → 匹配 Agents        │   │
+│  │  - 创建 Crew → 分配模型 → 复验              │   │
+│  │  - WebSocket 实时进度                      │   │
+│  └──────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────┐   │
+│  │  Crew 执行（责任链）                            │   │
+│  │  - PreHandle → Business Dispatch → Finish → Touch    │   │
+│  │  - Sequential / Hierarchical 策略              │   │
+│  │  - 执行后偏好进化                              │   │
+│  └──────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────┐   │
+│  │  支持服务                                  │   │
+│  │  - Agent 生成器 · Skills 推荐器              │   │
+│  │  - 模型路由器 · 偏好进化服务                 │   │
+│  └──────────────────────────────────────────────┘   │
+│              ┌──────────┴──────────┐                          │
+│              │   触达层（规划中）  │                          │
+│              │  自动触达外部 AI 服务    │                          │
+│              └─────────────────────┘                          │
 └─────────────────────────────┬───────────────────────────────┘
                               │
-┌─────────────────────────────▼───────────────────────────────┐
-│                      LLM 层                                  │
+┌─────────────────────────────┴───────────────────────────────┐
+│                        LLM 层                             │
 │  ┌─────────────────┐  ┌──────────────────┐                │
 │  │  DashScope       │  │  Claude / OpenAI  │                │
 │  │  通义千问全家桶  │  │  OpenRouter 等    │                │
@@ -169,12 +179,17 @@ make frontend  # → http://localhost:5173
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**两层 AI 调用分离：**
+**两阶段工作流：**
 
-| 层级 | 职责 | 使用模型 |
+| 阶段 | 模式 | 目的 |
 |------|------|---------|
-| **系统 AI** | 元操作（任务拆解、模型分配、偏好进化提案） | Standard（固定） |
-| **执行 AI** | 实际工作（分析、架构、文档、代码骨架） | 自动分配 |
+| **Crew 生成** | Pipeline（7 个固定步骤） | 从场景创建 Crew 配置 |
+| **Crew 执行** | 责任链 + 策略模式 | 执行 Crew 任务并进化偏好 |
+
+**详细架构文档：**
+- [Crew 生成架构](docs/CREW_GENERATION_ARCHITECTURE.md) — Pipeline 模式，事件驱动
+- [Crew 执行架构](docs/CREW_EXECUTION_ARCHITECTURE.md) — 责任链，策略模式
+- [LLM 客户端架构](docs/LLM_CLIENT_ARCHITECTURE.md) — 统一 AI 交互层
 
 ---
 
@@ -215,16 +230,27 @@ crewai_web/
 ├── core/
 │   ├── ai/            # LLM 客户端 + Prompt 加载器
 │   ├── llm/           # Provider 实现（DashScope、Claude）
+│   ├── event/         # 事件框架（BaseEvent, BusinessEvent, EventContext）
 │   ├── chain/         # 责任链执行引擎
-│   └── tools/         # Skill / Tool 加载器
+│   └── tools/         # WebSocket 管理器、执行日志、Skill 加载器
 ├── web/
-│   ├── services/      # 业务逻辑（编排器、Agent 生成器、偏好进化...）
-│   ├── api/           # FastAPI 路由
+│   ├── events/        # Crew 生成事件（7 个步骤）
+│   ├── services/      # 业务逻辑（Pipeline、生成器、进化...）
+│   ├── api/           # FastAPI 路由（REST + WebSocket）
 │   ├── domain/        # Pydantic 模型
 │   └── runner/        # Crew 执行引擎
 └── prompts/           # LLM Prompt 模板
 
 frontend/src/           # Vue 3 单页应用
+├── api/               # API 客户端（REST + WebSocket）
+├── composables/       # Vue 组合式函数（useWebSocket）
+└── views/             # Chat、Agent、Crew 管理
+
+docs/                  # 架构文档
+├── CREW_GENERATION_ARCHITECTURE.md
+├── CREW_EXECUTION_ARCHITECTURE.md
+└── LLM_CLIENT_ARCHITECTURE.md
+
 .crew/
 ├── system_rules.md    # 系统规则（静态，手动维护）
 └── preferences.md     # 个人偏好（动态，自动进化）
@@ -235,10 +261,11 @@ frontend/src/           # Vue 3 单页应用
 ## 现状
 
 **已完成 MVP：**
-- [x] 全链路：场景 → 任务拆解 → Agent 匹配/创建 → Skills 推荐 → Crew 组装 → 执行 → 结果沉淀
-- [x] 偏好自动注入 Agent system prompt
-- [x] 三级模型配置 + LLM 工厂
-- [x] SSE 实时执行日志
+- [x] **Crew 生成 Pipeline**：7 步事件驱动工作流，WebSocket 实时进度推送
+- [x] **Crew 执行引擎**：责任链 + 策略模式，支持动态任务执行
+- [x] **事件框架**：模板方法模式，统一日志和 WebSocket 推送
+- [x] 偏好自动注入到 Agent system prompt
+- [x] 三级模型配置 + 动态模型分配
 - [x] 执行历史 + 产物浏览
 - [x] Web UI（Agent / Task / Crew / Skills 管理）
 - [x] 国产 LLM（通义千问）原生支持

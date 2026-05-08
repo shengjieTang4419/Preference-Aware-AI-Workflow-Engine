@@ -12,7 +12,7 @@ from crewai_web.web.domain.agent import AgentOut
 from crewai_web.web.domain.task import TaskOut
 from crewai_web.web.domain.crew import CrewOut
 from crewai_web.core.ai.client import AIClient
-from crewai_web.core.tools import get_skills_manager
+from crewai_web.core.tools.skills import get_skills_manager
 
 
 class DynamicCrewBuilder:

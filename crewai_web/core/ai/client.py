@@ -132,7 +132,7 @@ class AIClient:
             prompt = client.load_prompt(
                 "generator/topic.prompt",
                 scenario="开发一个博客系统",
-                context_section="使用 FastAPI"
+                context_section="使用 FastAPI"  # 可选，缺失时自动填充为空字符串
             )
         """
         full_path = self.PROMPTS_DIR / prompt_path
@@ -142,11 +142,10 @@ class AIClient:
 
         template = full_path.read_text(encoding="utf-8")
 
-        # 填充变量
-        try:
-            return template.format(**kwargs)
-        except KeyError as e:
-            raise ValueError(f"Missing required variable in prompt template: {e}")
+        # 使用 format_map + defaultdict，缺失的占位符自动填充为空字符串
+        from collections import defaultdict
+
+        return template.format_map(defaultdict(str, **kwargs))
 
     async def call(
         self,

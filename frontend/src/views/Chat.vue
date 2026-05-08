@@ -80,10 +80,10 @@ import { UploadFilled, Close } from '@element-plus/icons-vue'
 import { api } from '@/api'
 import type { Crew } from '@/api'
 import RunCrewDialog from '@/components/crews/RunCrewDialog.vue'
-import { useSSEStream } from '@/composables/useSSEStream'
+import { useWebSocket } from '@/composables/useWebSocket'
 
 const router = useRouter()
-const { connect } = useSSEStream()
+const { connect } = useWebSocket()
 
 interface Message {
   role: 'user' | 'assistant'
@@ -146,16 +146,15 @@ const sendMessage = async () => {
 
   loading.value = true
   try {
-    await connect(
-      '/api/chat/generate-crew-stream',
-      {
-        scenario: userMessage,
-        context: '',
-        doc_filename: selectedDoc.value || null
-      },
-      {
-        onMessage: (data) => {
-          logMessage.text += `[${data.level}] ${data.message}\n`
+    // 提交任务
+    const { execution_id } = await api.chat.generateCrew(userMessage, selectedDoc.value || undefined)
+    
+    // 连接 WebSocket 接收进度
+    await connect(execution_id, {
+        onProgress: (data) => {
+          // 显示进度信息（用户友好）
+          const progress = data.percentage ? ` (${data.percentage}%)` : ''
+          logMessage.text += `${data.message}${progress}\n`
           scrollToBottom()
         },
         onComplete: (data) => {
