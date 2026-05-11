@@ -30,10 +30,12 @@ export function useWebSocket() {
 
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(wsUrl)
+      let isConnected = false
 
       ws.onopen = () => {
         connecting.value = false
-        console.log(`[WebSocket] Connected to ${executionId}`)
+        isConnected = true
+        // 不要在这里 resolve，等待 complete 或 error 消息
       }
 
       ws.onmessage = (event) => {
@@ -59,6 +61,7 @@ export function useWebSocket() {
       ws.onerror = (err) => {
         error.value = 'WebSocket 连接错误'
         connecting.value = false
+        console.error('[WebSocket] Connection error:', err)
         if (options.onError) {
           options.onError({ type: 'error', message: error.value })
         }
@@ -67,8 +70,19 @@ export function useWebSocket() {
 
       ws.onclose = () => {
         connecting.value = false
-        console.log('[WebSocket] Disconnected')
+        if (!isConnected) {
+          reject(new Error('WebSocket 连接在建立前就关闭了'))
+        }
       }
+
+      // 连接超时检测
+      setTimeout(() => {
+        if (!isConnected) {
+          console.error('[WebSocket] Connection timeout (5s)')
+          ws.close()
+          reject(new Error('WebSocket 连接超时'))
+        }
+      }, 5000)
     })
   }
 

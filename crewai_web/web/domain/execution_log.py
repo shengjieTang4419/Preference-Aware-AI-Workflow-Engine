@@ -52,4 +52,4 @@ class ExecutionLogCreate(BaseModel):
     """创建执行日志"""
 
     scenario: str
-    doc_filename: Optional[str] = None
+    doc_filenames: Optional[List[str]] = None

@@ -27,20 +27,25 @@
                 <el-button size="small" @click="viewCrew">查看详情</el-button>
               </div>
             </div>
-            <div v-else>{{ msg.text }}</div>
+            <div v-else class="progress-message">
+              <el-icon v-if="msg.isGenerating" class="is-loading" :size="16"><Loading /></el-icon>
+              <pre>{{ msg.text }}</pre>
+            </div>
           </div>
         </div>
 
       </div>
 
       <div class="input-area">
-        <!-- 已选文档标签 -->
-        <div v-if="selectedDoc" class="doc-tag">
-          <el-icon><Document /></el-icon>
-          <span>{{ selectedDoc }}</span>
-          <el-button type="danger" link size="small" @click="selectedDoc = ''">
-            <el-icon><Close /></el-icon>
-          </el-button>
+        <!-- 已选文档标签（支持多个） -->
+        <div v-if="selectedDocs.length > 0" class="doc-tags-container">
+          <div v-for="(doc, index) in selectedDocs" :key="index" class="doc-tag">
+            <el-icon><Document /></el-icon>
+            <span>{{ doc }}</span>
+            <el-button type="danger" link size="small" @click="removeDoc(index)">
+              <el-icon><Close /></el-icon>
+            </el-button>
+          </div>
         </div>
 
         <el-input
@@ -73,7 +78,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted } from 'vue'
+import { ref, reactive, nextTick, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElNotification } from 'element-plus'
 import { UploadFilled, Close } from '@element-plus/icons-vue'
@@ -88,6 +93,7 @@ const { connect } = useWebSocket()
 interface Message {
   role: 'user' | 'assistant'
   text: string
+  isGenerating?: boolean
   result?: {
     topic: string
     crew_id: string
@@ -101,18 +107,22 @@ const messages = ref<Message[]>([])
 const userInput = ref('')
 const loading = ref(false)
 const messagesArea = ref<HTMLElement>()
-const selectedDoc = ref('')
+const selectedDocs = ref<string[]>([])
 
 const handleDocUpload = async (file: File) => {
   try {
     ElMessage.info('上传中...')
     const result = await api.files.uploadDoc(file)
-    selectedDoc.value = result.filename
+    selectedDocs.value.push(result.filename)
     ElMessage.success(`文档已上传：${result.filename}`)
   } catch (e: any) {
     ElMessage.error(`上传失败：${e.message}`)
   }
   return false // 阻止 el-upload 默认上传行为
+}
+
+const removeDoc = (index: number) => {
+  selectedDocs.value.splice(index, 1)
 }
 
 const showRunDialog = ref(false)
@@ -134,20 +144,23 @@ const sendMessage = async () => {
   userInput.value = ''
   scrollToBottom()
 
-  const logMessage = {
+  const logMessage = reactive({
     role: 'assistant' as const,
     text: '🤖 后台正在生成 Crew，请稍候...\n\n',
     isGenerating: true
-  }
+  })
   messages.value.push(logMessage)
   scrollToBottom()
 
-  ElMessage.info({ message: '已提交生成任务，正在后台处理...', duration: 3000 })
-
   loading.value = true
   try {
-    // 提交任务
-    const { execution_id } = await api.chat.generateCrew(userMessage, selectedDoc.value || undefined)
+    // 提交任务获取 execution_id
+    const { execution_id } = await api.chat.generateCrew(
+      userMessage,
+      selectedDocs.value.length > 0 ? selectedDocs.value : undefined
+    )
+    
+    ElMessage.info({ message: '已提交生成任务，正在后台处理...', duration: 3000 })
     
     // 连接 WebSocket 接收进度
     await connect(execution_id, {
@@ -187,7 +200,8 @@ const sendMessage = async () => {
       }
     )
   } catch (error) {
-    // Error already handled in composable
+    console.error('[Chat] Error:', error)
+    ElMessage.error('任务执行失败，请查看控制台')
   } finally {
     loading.value = false
   }
@@ -276,13 +290,32 @@ onMounted(() => {
   gap: 8px;
 }
 
+.progress-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.progress-message pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: inherit;
+  line-height: 1.6;
+}
+
+.doc-tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
 
 .doc-tag {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  margin-bottom: 8px;
   background: #ecf5ff;
   border: 1px solid #b3d8ff;
   border-radius: 4px;

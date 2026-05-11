@@ -2,6 +2,7 @@
 Crew 生成 Pipeline - 编排所有事件步骤
 """
 
+import asyncio
 import logging
 from typing import Optional
 from crewai_web.core.event.event_context import EventContext
@@ -40,6 +41,7 @@ class CrewGenerationPipeline:
         self,
         execution_id: str,
         scenario: str,
+        doc_filenames: Optional[list[str]] = None,
     ) -> dict:
         """
         执行 Pipeline（完整流程，包含状态管理）
@@ -47,6 +49,7 @@ class CrewGenerationPipeline:
         Args:
             execution_id: 执行 ID
             scenario: 用户场景描述
+            doc_filenames: 上传的文档文件名列表
 
         Returns:
             生成结果 dict
@@ -54,9 +57,14 @@ class CrewGenerationPipeline:
         # 更新状态为运行中
         execution_log_service.update_status(execution_id, ExecutionStatus.RUNNING)
 
+        # 等待前端 WebSocket 连接建立（避免错过进度消息）
+        logger.info(f"[Pipeline] Waiting 1s for WebSocket connection...")
+        await asyncio.sleep(1.0)
+
         ctx = EventContext(
             execution_id=execution_id,
             scenario=scenario,
+            doc_filenames=doc_filenames,
         )
 
         logger.info(f"[Pipeline] Starting for scenario: {scenario[:100]}...")

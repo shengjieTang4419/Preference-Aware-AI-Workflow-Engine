@@ -17,7 +17,7 @@ async def generate_crew(request: ChatStreamRequest, background_tasks: Background
     """提交 Crew 生成任务（异步）"""
     # 创建执行记录
     execution = execution_log_service.create_execution(
-        ExecutionLogCreate(scenario=request.scenario, doc_filename=request.doc_filename)
+        ExecutionLogCreate(scenario=request.scenario, doc_filenames=request.doc_filenames)
     )
 
     # 后台任务执行（委托给 service）
@@ -25,6 +25,7 @@ async def generate_crew(request: ChatStreamRequest, background_tasks: Background
         crew_generation_pipeline.execute,
         execution.id,
         request.scenario,
+        request.doc_filenames,
     )
 
     return {"execution_id": execution.id, "status": "pending"}

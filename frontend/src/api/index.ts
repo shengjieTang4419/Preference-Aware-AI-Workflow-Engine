@@ -93,10 +93,10 @@ export const api = {
   },
 
   chat: {
-    generateCrew: (scenario: string, doc_filename?: string): Promise<{
+    generateCrew: (scenario: string, doc_filenames?: string[]): Promise<{
       execution_id: string
       status: string
-    }> => client.post('/chat/generate-crew', { scenario, doc_filename }),
+    }> => client.post('/chat/generate-crew', { scenario, doc_filenames }),
   },
 
   // Skills API

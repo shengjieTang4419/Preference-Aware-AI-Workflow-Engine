@@ -13,6 +13,7 @@ class EventContext:
     # 输入（初始化时确定）
     execution_id: str
     scenario: str
+    doc_filenames: Optional[List[str]] = None
 
     # 中间产物（各步骤写入）
     topic: Optional[str] = None

@@ -186,7 +186,7 @@ class AIClient:
         else:
             full_prompt = prompt
 
-        self.debug.log_prompt(full_prompt, role=role, model=self.model_name)
+        self.debug_service.log_prompt(full_prompt, role=role, model=self.model_name)
 
         for attempt in range(max_retries):
             try:
@@ -195,7 +195,7 @@ class AIClient:
                 response = await asyncio.to_thread(self.llm.call, full_prompt)
 
                 elapsed = time.time() - start_time
-                self.debug.log_response(response, elapsed=elapsed, role=role, model=self.model_name)
+                self.debug_service.log_response(response, elapsed=elapsed, role=role, model=self.model_name)
 
                 # 如果没有指定 response_model，直接返回文本
                 if response_model is None:
