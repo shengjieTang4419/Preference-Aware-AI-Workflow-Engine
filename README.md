@@ -155,20 +155,27 @@ cd one_person_company
 
 # 2. 配置
 cp .env.example .env
-# 编辑 .env，设置 API Key 和数据库密码
+# 编辑 .env，填入至少一个 LLM API Key
 
-# 3. 启动数据库（Docker）
-cd ~/Documents/docker
-docker compose up -d cloud-pgvector
+# 3. 一键启动（Docker）
+docker compose up -d
 
-# 4. 启动后端
-make backend   # → http://localhost:8000
+# 4. 访问
+# 前端: http://localhost:5173
+# 后端: http://localhost:8000/docs
 
-# 5. 启动前端
-make frontend  # → http://localhost:5173
+# 5. 注册账号 → 进入创意工坊 → 选择场景 → 输入想法 → 开始创造
+```
 
-# 6. 使用
-# 浏览器打开 → 注册账号 → 进入创意工坊 → 选择场景 → 输入想法 → 开始创造
+**不使用 Docker 的本地开发：**
+```bash
+# 前提：本地已有 PostgreSQL + pgvector
+cp .env.example .env
+# 编辑 .env 配置数据库连接和 API Key
+
+make install   # 安装前端依赖
+make backend   # 终端1: 启动后端 → http://localhost:8000
+make frontend  # 终端2: 启动前端 → http://localhost:5173
 ```
 
 ---

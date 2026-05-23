@@ -1,6 +1,8 @@
-# CrewAI Web - 统一启动脚本
+# CrewAI Web - 创意工坊 启动脚本
 
-.PHONY: install frontend backend dev build
+.PHONY: install frontend backend dev build docker-up docker-down docker-build
+
+# ── 本地开发 ──────────────────────────────────────
 
 # 安装依赖
 install:
@@ -10,7 +12,7 @@ install:
 backend:
 	uv run python main.py
 
-# 启动前端（开发模式）
+# 启动前端
 frontend:
 	cd frontend && npm run dev
 
@@ -23,3 +25,25 @@ dev:
 # 构建前端
 build:
 	cd frontend && npm run build
+
+# ── Docker 部署 ──────────────────────────────────
+
+# 启动所有服务
+docker-up:
+	docker compose up -d
+
+# 停止所有服务
+docker-down:
+	docker compose down
+
+# 构建镜像
+docker-build:
+	docker compose build
+
+# 查看日志
+docker-logs:
+	docker compose logs -f
+
+# 重建并启动（代码变更后）
+docker-restart:
+	docker compose up -d --build
