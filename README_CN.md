@@ -1,112 +1,159 @@
-# Preference-Aware AI Workflow Engine
+# 创意工坊 — AI Creative Workshop
 
-### 一个会学习你偏好的 AI 工作流引擎
+### 一个想法进来，任意形态的成果出去。
 
 [![Python 3.13+](https://img.shields.io/badge/Python-3.13%2B-blue.svg)](https://python.org)
-[![CrewAI](https://img.shields.io/badge/Powered%20by-CrewAI-FF6B35?logo=crewai)](https://crewai.com)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi)](https://fastapi.tiangolo.com)
+[![Vue 3](https://img.shields.io/badge/Vue-3-42b883?logo=vuedotjs)](https://vuejs.org)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql)](https://postgresql.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> **一次 LLM 调用给你答案，这个引擎给你会学习的 AI 工作流。**
+> **ChatGPT 给你答案，创意工坊给你可用的成品。**
 >
-> 不是更快的 AI，是越用越懂你的 AI。
+> 输入：一句话 / 一段描述 / 一个想法
+> 输出：文档 / 数据报告 / PPT / Excel / 代码 / 音乐 / 视频 / 游戏
 
 [English](README.md) | **中文**
 
 ---
 
-## 这个项目解决什么问题
+## 项目定位
 
-**AI 代码生成工具越来越强，但架构设计还是靠人。**
+```
+AI 聊天工具（ChatGPT / Claude）
+  → 给你答案（文字）
 
-Cursor、Windsurf、Claude Code 能帮你写代码，但没法帮你想清楚：
-
-- 系统分几个模块、模块之间怎么通信
-- 边界在哪里，哪些自己做，哪些用现成方案
-- 技术选型怎么平衡成本和团队能力
-
-这个项目做的不是 AI 写代码，而是 **AI 辅助架构设计**：输入一个业务场景，输出结构化的架构设计文档 + 关键代码骨架，让程序员拿着这份文档去 IDE 里高效实现。
+创意工坊（本项目）
+  → 给你成品（文件）
+  → 输入想法 → AI 自动编排多个 Agent → 产出可用的制品
+```
 
 ---
 
-## 核心能力
+## 核心功能
 
-### 1. Preference Evolution — Agent 越用越懂你
+### 🎨 创意工坊（首页）
 
-```
-输入场景 → AI 拆解任务 → Agent 协作执行 → 结果分析 → 偏好自动更新
-```
-
-每次 Crew 执行完成后，系统分析执行结果，自动提案更新 `.crew/preferences.md`。你审核通过后，下一次 Agent 自动理解你的风格。
-
-```markdown
-<!-- .crew/preferences.md — 自动进化 -->
-## 编码规范
-- 优先可读性，其次简洁
-- 必须有类型注解
-- 禁止无意义的注释
-
-## 输出风格
-- 直接给结论，不废话
-- 代码块必须有语言标识
-```
-
-**为什么有价值：** 单次 LLM 调用做不到这个。RAG 做不到这个。上下文窗口也做不到这个。Preference Evolution 需要的是一个完整的"执行 → 分析 → 提案 → 审核 → 更新"闭环。
-
-### 2. 三级模型动态分配 — 成本与质量的平衡
-
-不是每个任务都需要最强的模型。
+场景卡片式交互，用户选择场景后输入想法，AI 自动产出制品。
 
 ```
-文档整理       → Basic (qwen-turbo)     成本最低
-常规分析       → Standard (qwen-plus)   平衡
-架构设计       → Advanced (qwen-max)    质量最高
+┌─────────────────────────────────────────────────────┐
+│  🎨 创意工坊 — 一个想法，无限可能                      │
+│                                                       │
+│  [  输入你的想法...  ] [📎上传] [开始创造]              │
+│                                                       │
+│  🔥 热门场景                                           │
+│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐        │
+│  │ 📝     │ │ 📊     │ │ 🎨     │ │ 💻     │        │
+│  │结构化   │ │数据    │ │产品    │ │写代码   │        │
+│  │文档     │ │分析    │ │PPT     │ │        │        │
+│  │免费·自动│ │免费·自动│ │基础·人工│ │免费·自动│        │
+│  └────────┘ └────────┘ └────────┘ └────────┘        │
+└─────────────────────────────────────────────────────┘
 ```
 
-AI 根据任务复杂度自动决定用哪个模型，你也可以手动覆盖。
+### 🏪 模版市场
 
-### 3. 完整执行过程可观测
+模版的"应用商店"。用户浏览、安装、使用场景模版。
 
-- **WebSocket 实时进度** — 看着 Crew 生成的每一步
-- **执行历史** — 随时回看任意一次运行的完整记录
-- **中间产物** — 每个 Task 的输出独立可查
-- **LLM 调用记录** — 调试信息含模型 + trace_id
+- 已安装的模版显示在创意工坊首页
+- 未安装的模版需要"安装"或"升级解锁"
+- 支持分类筛选（文档 / 数据 / 代码 / 多媒体）
+- 支持阶梯收费（免费 / 基础 / 高级）
+
+### ⭐ 会员体系
+
+三档会员，阶梯式权益：
+
+| 等级 | 价格 | 可用场景 | 特权 |
+|------|------|---------|------|
+| Free | 免费 | 仅免费场景 | 基础功能 |
+| Pro | ¥29.9/月 | 免费 + 基础场景 | 无限创作 · 优先排队 |
+| Max | ¥99.9/月 | 全部场景 | 含音乐/视频 · 专属客服 · API 额度加倍 |
+
+- 激活码兑换（PRO-3M-XXXXX 格式）
+- 虚拟金额系统（分享裂变 / 发布模版赚取）
+- 充值流水记录
+
+### 🔧 技能发现与管理
+
+集成 [skills.sh](https://skills.sh/) 技能排行榜，一键安装：
+
+- 热门技能展示（来自 skills.sh Top 排行）
+- 一键安装 → AI 自动生成结构化说明
+- 已安装技能管理（查看说明 / 卸载）
+
+### 📤 创作产出（策略模式）
+
+基于策略模式的制品生成引擎，每种输出类型一个策略：
+
+```
+用户输入 → LLM 生成内容 → 策略处理 → 输出文件
+
+DocumentStrategy      → Markdown → .md 文件
+DataAnalysisStrategy  → Python 脚本 → 执行 → 图表 + 报告
+PPTStrategy           → 幻灯片大纲 → python-pptx → .pptx
+ExcelStrategy         → 数据结构 → openpyxl → .xlsx
+CodeStrategy          → 代码文件 → zip 打包
+GameStrategy          → HTML5 代码 → .html（浏览器直接运行）
+MusicStrategy         → 音乐描述 → Suno API → .mp3
+VideoStrategy         → 视频脚本 → Kling API → .mp4
+```
+
+新增输出类型只需：**新建一个策略文件 + 注册到 STRATEGY_MAP**，不改任何已有代码。
+
+### 🧠 偏好进化
+
+Agent 越用越懂你。每次执行后自动分析结果，提议偏好更新：
+
+```
+执行 → 分析 → 提议 → 用户审批 → 偏好更新 → 下次执行自动应用
+```
+
+### 📊 执行流程画布
+
+可视化的 Agent 协作流程图：
+
+- SVG 流程图：任务节点 + Agent 信息 + 模型等级 + 连接箭头
+- 支持顺序执行（水平排列）和层级执行（DAG 拓扑排序）
+- 点击节点查看详情（Agent 角色、任务描述、依赖关系）
+- 运行中自动轮询刷新
 
 ---
 
-## 使用场景
-
-### 场景 1：架构设计（核心场景）
+## 技术架构
 
 ```
-输入："帮我设计一个 SaaS 订阅管理系统，支持多租户、计费、通知"
-
-系统输出：
-├── 系统架构图
-├── 模块划分 + 职责边界
-├── 核心接口定义
-├── 技术选型建议
-├── 关键代码骨架（不是完整实现，是架构骨架）
-└── 实施路线图
+┌─────────────────────────────────────────────────────────────┐
+│                     Frontend (Vue 3)                         │
+│  创意工坊 · 模版市场 · 会员中心 · 技能管理 · 执行流程画布    │
+└─────────────────────────────┬───────────────────────────────┘
+                              │ REST / WebSocket
+┌─────────────────────────────▼───────────────────────────────┐
+│                     FastAPI 服务层                            │
+│                                                              │
+│  ┌────────────┐  ┌────────────┐  ┌──────────────────────┐  │
+│  │ 创作引擎    │  │ 场景管理    │  │ 用户/会员/技能       │  │
+│  │ (策略模式)  │  │ (配置驱动)  │  │ (认证/权限/流水)     │  │
+│  └────────────┘  └────────────┘  └──────────────────────┘  │
+│                                                              │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  CrewAI 编排层（Pipeline + 责任链）                    │   │
+│  │  偏好进化 · 模型路由 · WebSocket 实时推送              │   │
+│  └──────────────────────────────────────────────────────┘   │
+└─────────────────────────────┬───────────────────────────────┘
+                              │
+┌─────────────────────────────▼───────────────────────────────┐
+│  PostgreSQL + pgvector  │  LLM 层 (DashScope / Claude)      │
+│  用户 · 会员 · 场景 · 创作记录 · 流水                       │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-程序员拿着这份文档，在 IDEA / Claude Code / Cursor 里实现细节。
-
-### 场景 2：任务并行加速
-
-```
-输入："分析竞品、完成技术选型、写项目文档"
-→ Agent 1 (竞品分析) + Agent 2 (技术选型) + Agent 3 (文档撰写) 并行执行
-→ 节省一半时间
-```
-
-### 场景 3：长期项目，偏好积累
-
-```
-第 1 次：系统学到你喜欢"简洁代码、类型注解、中文注释"
-第 5 次：Agent 自动用你的风格输出，节省大量 review 时间
-第 20 次：Agent 比新来的程序员更懂你的项目规范
-```
+**设计模式：**
+- 策略模式（Strategy）— 创作输出类型可插拔
+- 责任链模式（Chain of Responsibility）— Crew 执行流程
+- Pipeline 模式 — Crew 生成 7 步工作流
+- 适配器模式（Adapter）— 场景扩展点
 
 ---
 
@@ -114,112 +161,26 @@ AI 根据任务复杂度自动决定用哪个模型，你也可以手动覆盖�
 
 ```bash
 # 1. 克隆
-git clone https://github.com/shengjieTang4419/Preference-Aware-AI-Workflow-Engine.git
-cd preference-workflow-engine
+git clone <repo-url>
+cd one_person_company
 
 # 2. 配置
 cp .env.example .env
-# 编辑 .env，设置 DASHSCOPE_API_KEY 和/或 CLAUDE_API_KEY
+# 编辑 .env，设置 API Key 和数据库密码
 
-# 3. 启动
-make backend   # → http://localhost:8000/docs
+# 3. 启动数据库（Docker）
+cd ~/Documents/docker
+docker compose up -d cloud-pgvector
+
+# 4. 启动后端
+make backend   # → http://localhost:8000
+
+# 5. 启动前端
 make frontend  # → http://localhost:5173
 
-# 4. 使用
-# 浏览器打开 → 输入场景 → 看着 Agent 工作 → 查看结果
+# 6. 使用
+# 浏览器打开 → 注册账号 → 进入创意工坊 → 选择场景 → 输入想法 → 开始创造
 ```
-
-**示例输入：**
-> "帮我设计一个微服务电商系统，包含用户、订单、支付三个模块，支持多租户"
-
-系统自动完成：任务拆解 → Agent 匹配/创建 → Skills 推荐（可选） → 模型分配 → Crew 执行 → SSE 实时日志 → 结果沉淀
-
----
-
-## 架构图
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      Frontend (Vue 3)                       │
-│         对话 · Agent 管理 · 执行历史 · 产物浏览             │
-└─────────────────────────────┬───────────────────────────────┘
-                              │ WebSocket / REST
-┌─────────────────────────────┴───────────────────────────────┐
-│                     FastAPI (crewai_web)                    │
-│                                                              │
-│  ┌──────────────────────────────────────────────┐   │
-│  │  Crew 生成（Pipeline）                          │   │
-│  │  - 生成主题 → 规划任务 → 匹配 Agents        │   │
-│  │  - 创建 Crew → 分配模型 → 复验              │   │
-│  │  - WebSocket 实时进度                      │   │
-│  └──────────────────────────────────────────────┘   │
-│  ┌──────────────────────────────────────────────┐   │
-│  │  Crew 执行（责任链）                            │   │
-│  │  - PreHandle → Business Dispatch → Finish → Touch    │   │
-│  │  - Sequential / Hierarchical 策略              │   │
-│  │  - 执行后偏好进化                              │   │
-│  └──────────────────────────────────────────────┘   │
-│  ┌──────────────────────────────────────────────┐   │
-│  │  支持服务                                  │   │
-│  │  - Agent 生成器 · Skills 推荐器              │   │
-│  │  - 模型路由器 · 偏好进化服务                 │   │
-│  └──────────────────────────────────────────────┘   │
-│              ┌──────────┴──────────┐                          │
-│              │   触达层（规划中）  │                          │
-│              │  自动触达外部 AI 服务    │                          │
-│              └─────────────────────┘                          │
-└─────────────────────────────┬───────────────────────────────┘
-                              │
-┌─────────────────────────────┴───────────────────────────────┐
-│                        LLM 层                             │
-│  ┌─────────────────┐  ┌──────────────────┐                │
-│  │  DashScope       │  │  Claude / OpenAI  │                │
-│  │  通义千问全家桶  │  │  OpenRouter 等    │                │
-│  └─────────────────┘  └──────────────────┘                │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**两阶段工作流：**
-
-| 阶段 | 模式 | 目的 |
-|------|------|---------|
-| **Crew 生成** | Pipeline（7 个固定步骤） | 从场景创建 Crew 配置 |
-| **Crew 执行** | 责任链 + 策略模式 | 执行 Crew 任务并进化偏好 |
-
-**详细架构文档：**
-- [Crew 生成架构](docs/CREW_GENERATION_ARCHITECTURE.md) — Pipeline 模式，事件驱动
-- [Crew 执行架构](docs/CREW_EXECUTION_ARCHITECTURE.md) — 责任链，策略模式
-- [LLM 客户端架构](docs/LLM_CLIENT_ARCHITECTURE.md) — 统一 AI 交互层
-
----
-
-## 与竞品对比
-
-| 能力 | 本项目 | CrewAI | Dify | AutoGen |
-|------|--------|--------|------|---------|
-| **Preference Evolution** | ✅ 自动闭环 | ❌ | ❌ | ❌ |
-| **动态模型分配** | ✅ 3级自动路由 | ⚠️ 手动 | ⚠️ 手动 | ❌ |
-| **架构文档输出** | ✅ 核心能力 | ❌ | ❌ | ❌ |
-| **触达层** | ✅ 规划中 | ❌ | ❌ | ❌ |
-| **国产模型（通义千问）** | ✅ 原生支持 | ⚠️ | ✅ | ❌ |
-| **SSE 实时日志** | ✅ 完整 | ❌ | ⚠️ | ❌ |
-| **Skills 自动推荐** | ✅ 可选非阻塞 | ❌ | ❌ | ❌ |
-| **开源** | ✅ MIT | ✅ | ✅ | ✅ |
-
-**差异化定位：** 不是 AI 写代码工具，而是 AI 架构设计 Copilot。
-
----
-
-## 技术栈
-
-| 层级 | 技术 |
-|------|------|
-| **Agent 编排** | [CrewAI](https://crewai.com) |
-| **后端 API** | FastAPI + Pydantic v2 + Uvicorn |
-| **前端** | Vue 3 + TypeScript + Element Plus |
-| **LLM 提供方** | DashScope（通义千问，原生）、Claude（Anthropic） |
-| **持久化** | JSON 文件（`storage/`）— 可升级 |
-| **Python 管理** | `uv` |
 
 ---
 
@@ -228,118 +189,119 @@ make frontend  # → http://localhost:5173
 ```
 crewai_web/
 ├── core/
-│   ├── ai/            # LLM 客户端 + Prompt 加载器
-│   ├── llm/           # Provider 实现（DashScope、Claude）
-│   ├── event/         # 事件框架（BaseEvent, BusinessEvent, EventContext）
-│   ├── chain/         # 责任链执行引擎
-│   └── tools/         # WebSocket 管理器、执行日志、Skill 加载器
+│   ├── ai/              # LLM 客户端（AIClient）
+│   ├── llm/             # Provider 实现（DashScope, Claude）
+│   ├── event/           # 事件框架
+│   ├── chain/           # 责任链执行引擎
+│   └── tools/           # WebSocket 管理器, Skills 加载器
 ├── web/
-│   ├── events/        # Crew 生成事件（7 个步骤）
-│   ├── services/      # 业务逻辑（Pipeline、生成器、进化...）
-│   ├── api/           # FastAPI 路由（REST + WebSocket）
-│   ├── domain/        # Pydantic 模型
-│   └── runner/        # Crew 执行引擎
-└── prompts/           # LLM Prompt 模板
+│   ├── api/             # FastAPI 路由（REST）
+│   │   └── deps.py      # 共享认证依赖
+│   ├── services/        # 业务逻辑层（纯函数）
+│   │   ├── creativity/  # 创作策略引擎
+│   │   │   ├── strategy.py           # 策略基类
+│   │   │   ├── document_strategy.py   # 文档策略
+│   │   │   └── data_analysis_strategy.py # 数据分析策略
+│   │   ├── auth_service.py            # 认证服务
+│   │   ├── membership_service.py      # 会员服务
+│   │   ├── skills_market_service.py   # 技能市场服务
+│   │   └── ...
+│   ├── domain/          # Pydantic 数据模型
+│   ├── config.py        # 集中配置
+│   └── database.py      # 数据库连接 + 建表
+└── prompts/             # LLM 提示词模板
 
-frontend/src/           # Vue 3 单页应用
-├── api/               # API 客户端（REST + WebSocket）
-├── composables/       # Vue 组合式函数（useWebSocket）
-└── views/             # Chat、Agent、Crew 管理
+frontend/src/
+├── api/                 # API 客户端（REST）
+├── stores/              # Pinia 状态管理
+├── components/
+│   └── flow/            # 流程画布组件
+│       ├── FlowCanvas.vue    # SVG 画布 + 布局引擎
+│       ├── FlowNode.vue      # 任务节点
+│       ├── FlowEdge.vue      # 连接箭头
+│       └── FlowSidebar.vue   # 详情侧栏
+├── views/
+│   ├── Home.vue         # 创意工坊首页
+│   ├── TemplateMarket.vue # 模版市场
+│   ├── Membership.vue   # 会员中心
+│   ├── Skills.vue       # 技能发现与管理
+│   ├── ExecutionFlow.vue # 执行流程画布
+│   ├── Login.vue        # 登录
+│   └── Register.vue     # 注册
+└── router/              # Vue Router
 
-docs/                  # 架构文档
+docs/
+├── DEVELOPMENT_CONVENTIONS.md  # 开发守则
+├── CODE_REVIEW_REPORT.md       # 代码审查报告
 ├── CREW_GENERATION_ARCHITECTURE.md
 ├── CREW_EXECUTION_ARCHITECTURE.md
-└── LLM_CLIENT_ARCHITECTURE.md
-
-.crew/
-├── system_rules.md    # 系统规则（静态，手动维护）
-└── preferences.md     # 个人偏好（动态，自动进化）
+└── ...
 ```
 
 ---
 
-## 现状
+## 技术栈
 
-**已完成 MVP：**
-- [x] **Crew 生成 Pipeline**：7 步事件驱动工作流，WebSocket 实时进度推送
-- [x] **Crew 执行引擎**：责任链 + 策略模式，支持动态任务执行
-- [x] **事件框架**：模板方法模式，统一日志和 WebSocket 推送
-- [x] 偏好自动注入到 Agent system prompt
-- [x] 三级模型配置 + 动态模型分配
-- [x] 执行历史 + 产物浏览
-- [x] Web UI（Agent / Task / Crew / Skills 管理）
-- [x] 国产 LLM（通义千问）原生支持
-- [x] LLM 调试记录（模型 + trace_id）
-
----
-
-## 功能规划（Roadmap）
-
-以下功能正在规划中，按优先级排序。
-
-### Preference Evolution 2.0 — 规则标签化管理
-
-把偏好规则当作**人的标签**来管理，实现精细化自适应：
-
-| 特性 | 说明 |
-|------|------|
-| **整合压缩** | 定期将语义相近的规则合并，避免 system prompt 臃肿，节省 token |
-| **置信度机制** | 命中越多的规则置信度越高，优先匹配高置信度规则 |
-| **规则溯源** | 每条规则记录来源（哪次执行、哪个场景），形成可信凭证 |
-| **冲突检测** | 当两条规则冲突时，用置信度对比解决；若置信度接近，则向用户询问确认 |
-| **竞争队列** | 新规则携带置信度，与历史规则竞争，只有胜出的规则才能驻留 |
-
-### 触达层 — 自动触达各类模型服务
-
-不要把 AI 局限在"写代码"。架构文档确认后，系统可以自动触达：
-
-- **代码生成** → Claude Code / Cursor
-- **行业报告** → 通义千问 / Kimi
-- **音乐 / 视频生成** → 对应模型服务（Midjourney、Suno、即梦等）
-- **数据处理** → Python / SQL 执行服务
-
-### 更多规划
-
-- **多租户隔离** — 独立偏好空间、执行历史、Skills 库
-- **OpenRouter 统一接入** — 接入全球主流模型
-- **Crew 流程编排增强** — 异步并行、条件路由、Pipeline 模式
+| 层 | 技术 |
+|---|------|
+| **前端** | Vue 3 + TypeScript + Element Plus + Pinia |
+| **后端** | FastAPI + Pydantic v2 + Uvicorn |
+| **数据库** | PostgreSQL 17 + pgvector（向量检索预留） |
+| **ORM** | asyncpg（连接池） |
+| **认证** | JWT（bcrypt + PyJWT） |
+| **Agent 编排** | CrewAI |
+| **LLM** | DashScope（Qwen）, Claude, OpenRouter |
+| **Python** | 3.13+, uv 包管理 |
+| **容器** | Docker Compose |
 
 ---
 
-## 定位说明
+## 开发守则
 
-```
-AI 代码工具（Cursor / Windsurf / Claude Code）
-  → 解决"怎么写"
+详见 [docs/DEVELOPMENT_CONVENTIONS.md](docs/DEVELOPMENT_CONVENTIONS.md)
 
-AI 架构设计工具（本项目）
-  → 解决"怎么设计"
-  → 把复杂场景拆解成可执行的架构文档
-  → 程序员拿着文档去 IDE 实现
-```
-
-程序员的价值从"写代码"转向"架构设计 + 边界定义 + 人工 Review"。AI 负责拆解和分析，人负责判断和决策。
+核心原则：
+- **职责分离** — API（薄路由）→ Service（纯函数）→ Domain（数据模型）
+- **组合 > 继承** — 策略模式 / 适配器模式，不继承链
+- **不过度设计** — 先跑通，有需求再抽象
+- **契约先行** — 模块间通过 Pydantic 模型交互
 
 ---
 
-## License
+## Roadmap
 
-MIT License — 个人和商业使用均免费。
+### Phase 1 ✅ 已完成
+- [x] 创意工坊首页（场景卡片 + 文件上传）
+- [x] 模版市场（浏览 / 安装 / 分类筛选）
+- [x] 会员体系（Free / Pro / Max / 激活码 / 流水）
+- [x] 用户认证（注册 / 登录 / JWT）
+- [x] 技能发现与管理（skills.sh 集成 / AI 说明）
+- [x] 结构化文档策略（Markdown 输出）
+- [x] 数据分析策略（Python 脚本执行 + 图表）
+- [x] 执行流程画布（SVG 流程图 + Agent/Task 可视化）
+- [x] PostgreSQL + pgvector 数据库
+
+### Phase 2 进行中
+- [ ] PPT 生成策略（python-pptx）
+- [ ] Excel 图表策略（openpyxl）
+- [ ] 代码项目策略（多文件 + zip 打包）
+- [ ] 创作历史详情页（制品预览 + 下载）
+- [ ] 前端对接创作执行 API
+
+### Phase 3 计划中
+- [ ] 小游戏策略（HTML5 代码生成）
+- [ ] 图片生成策略（通义万相 / DALL-E）
+- [ ] 用户发布模版到市场
+- [ ] 虚拟金额赚取（分享裂变）
+
+### Phase 4 远期
+- [ ] 音乐生成策略（Suno API）
+- [ ] 视频生成策略（Kling API）
+- [ ] 偏好进化 2.0（规则标签 / 置信度 / 冲突检测）
+- [ ] 多租户 / 团队协作
 
 ---
 
-## 关于这个项目
+## 许可证
 
-这个项目起源于一个简单的好奇：**CrewAI 里的 "Crew" 是什么意思，它怎么玩的？**
-
-抱着这个问题，一边学一边写，从一个玩票的探索变成了一个完整的 AI 工作流引擎。
-
-起点是一个人，好奇心驱动。没有融资，没有团队，只有一个真实的判断：AI Agent 的价值不在于"帮你写代码"，而在于"帮你把复杂的事情拆解清楚"。
-
-这个判断对不对，用时间证明。
-
----
-
-> **设计理念**
->
-> 这个项目面向那些希望 AI Agent 能持续学习、而不是每次都重新开始的开发者。核心洞察：**最有价值的 AI 系统不是模型最强的那个，而是最懂你的那个。**
+MIT License — 开源免费，可商用。

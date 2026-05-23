@@ -164,3 +164,193 @@ export interface LLMSettings {
   dashscope?: LLMProviderConfig
   claude?: LLMProviderConfig
 }
+
+// === 创意工坊相关类型 ===
+
+export interface Scene {
+  id: string
+  icon: string
+  title: string
+  subtitle: string
+  placeholder: string
+  category: string
+  tags: string[]
+  output_format: string
+  enabled: boolean
+  sort_order: number
+}
+
+export interface SceneConfig {
+  id: string
+  icon: string
+  title: string
+  subtitle: string
+  placeholder?: string
+  category: string
+  tags: string[]
+  output_format: string
+  enabled: boolean
+  visible: boolean
+  sort_order: number
+  price_tier: string
+  exec_mode: string
+  output_dir?: string
+  crew_template?: string
+  description?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface Creation {
+  id: string
+  scene_id: string
+  scene_title?: string
+  scene_icon?: string
+  input_text: string
+  status: 'pending' | 'running' | 'success' | 'failed'
+  output?: string
+  created_at: string
+  updated_at: string
+}
+
+// === 会员系统相关类型 ===
+
+export interface Membership {
+  user_id: number
+  level: string
+  activation_code?: string
+  activated_at?: string
+  expires_at?: string
+  is_expired: boolean
+  virtual_money: number
+}
+
+export interface PricingPlan {
+  level: string
+  name: string
+  price: number
+  period: string
+  features: string[]
+  scene_access: string
+}
+
+export interface MembershipTransaction {
+  id: number
+  user_id: number
+  action: string
+  from_level?: string
+  to_level?: string
+  amount: number
+  activation_code?: string
+  remark?: string
+  created_at: string
+}
+
+// === 技能市场相关类型 ===
+
+export interface DiscoverSkill {
+  name: string
+  source: string
+  installs: number | string
+  description: string
+}
+
+export interface InstalledSkill {
+  name: string
+  package: string
+  installed_at: string
+  summary: string
+  what_it_does: string
+  when_to_use: string[]
+  key_features: string[]
+  example: string
+  raw_content: string
+}
+
+// === 创意执行流程相关类型 ===
+
+export interface ArtifactOut {
+  id: number
+  execution_id: string
+  user_id?: number | null
+  scene_id: string
+  title?: string | null
+  description?: string | null
+  output_type?: string | null
+  output_dir?: string | null
+  output_files: string[]
+  preview_text?: string | null
+  status: 'pending' | 'running' | 'completed' | 'failed'
+  error_message?: string | null
+  created_at: string
+  completed_at?: string | null
+}
+
+export interface CreativityExecuteResponse {
+  execution_id: string
+  status: string
+  artifact?: ArtifactOut | null
+}
+
+// === 执行流程图相关类型 ===
+
+export interface FlowTask {
+  id: string
+  name: string
+  description: string
+  expected_output: string
+  agent_id: string
+  agent_name: string
+  agent_role: string
+  agent_goal: string
+  agent_backstory: string
+  model_tier: 'basic' | 'standard' | 'advanced'
+  context_task_ids: string[]
+  async_execution: boolean
+  status: 'completed' | 'running' | 'pending' | 'failed'
+  index: number
+}
+
+export interface FlowAgent {
+  id: string
+  name: string
+  role: string
+  goal: string
+  backstory: string
+  llm_key: string
+  model_tier: 'basic' | 'standard' | 'advanced'
+  assigned_tasks: string[]
+}
+
+export interface FlowEdge {
+  source: string
+  target: string
+  type: 'dependency'
+}
+
+export interface FlowExecution {
+  id: string
+  status: string
+  requirement: string
+  crew_id: string
+  created_at: string
+  started_at: string
+  completed_at: string
+  error_message?: string | null
+}
+
+export interface FlowCrew {
+  id: string
+  name: string
+  description: string
+  process_type: 'sequential' | 'hierarchical'
+  agent_model_assignments: Record<string, 'basic' | 'standard' | 'advanced'>
+}
+
+export interface FlowData {
+  execution: FlowExecution
+  crew: FlowCrew
+  tasks: FlowTask[]
+  agents: FlowAgent[]
+  edges: FlowEdge[]
+}

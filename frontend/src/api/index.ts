@@ -1,5 +1,6 @@
 import axios from 'axios'
-import type { Agent, Task, Crew, Execution, Skill, SkillsStatistics, PreferenceProposal, PreferenceProposalDetail, DiffView, LLMProvider, LLMSettings } from './types'
+import type { AxiosInstance } from 'axios'
+import type { Agent, Task, Crew, Execution, Skill, SkillsStatistics, PreferenceProposal, PreferenceProposalDetail, DiffView, LLMProvider, LLMSettings, Scene, SceneConfig, Creation, Membership, PricingPlan, MembershipTransaction, DiscoverSkill, InstalledSkill, ArtifactOut, CreativityExecuteResponse, FlowData } from './types'
 
 // 创建 axios 实例
 const client = axios.create({
@@ -13,7 +14,13 @@ const client = axios.create({
 // 请求拦截器
 client.interceptors.request.use(
   (config) => {
-    console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`)
+    const token = localStorage.getItem('token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    if (import.meta.env.DEV) {
+      console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`)
+    }
     return config
   },
   (error) => Promise.reject(error)
@@ -23,6 +30,12 @@ client.interceptors.request.use(
 client.interceptors.response.use(
   (response) => response.data,
   (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token')
+      if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+        window.location.href = '/login'
+      }
+    }
     console.error('[API Error]', error.response?.data || error.message)
     return Promise.reject(error)
   }
@@ -32,6 +45,14 @@ client.interceptors.response.use(
 export const api = {
   health: {
     check: () => client.get('/health'),
+  },
+
+  auth: {
+    login: (data: { username: string; password: string }): Promise<any> =>
+      client.post('/auth/login', data),
+    register: (data: { username: string; email: string; password: string }): Promise<any> =>
+      client.post('/auth/register', data),
+    me: (): Promise<any> => client.get('/auth/me'),
   },
 
   agents: {
@@ -70,6 +91,8 @@ export const api = {
       client.get(`/executions/${id}/files/content`, { params: { file_path: filePath } }),
     getFileDownloadUrl: (execId: string, filePath: string): string =>
       `/api/executions/${execId}/files/download?file_path=${encodeURIComponent(filePath)}`,
+    getFlow: (execId: string): Promise<FlowData> =>
+      client.get(`/executions/${execId}/flow`),
   },
 
   files: {
@@ -141,6 +164,23 @@ export const api = {
       client.post(`/preferences/evolve-from-execution/${execId}`),
   },
 
+  // 创意工坊 API
+  scenes: {
+    list: (): Promise<Scene[]> => client.get('/scenes'),
+  },
+
+  sceneConfigs: {
+    list: (): Promise<SceneConfig[]> => client.get('/scene-configs'),
+    get: (id: string): Promise<SceneConfig> => client.get(`/scene-configs/${id}`),
+  },
+
+  creations: {
+    list: (): Promise<Creation[]> => client.get('/creations'),
+    get: (id: string): Promise<Creation> => client.get(`/creations/${id}`),
+    create: (data: { scene_id: string; input_text: string; input_files?: any[] }): Promise<Creation> =>
+      client.post('/creations', data),
+  },
+
   // LLM 设置 API
   llm: {
     listProviders: (): Promise<{ providers: LLMProvider[]; default_provider: string }> =>
@@ -151,6 +191,39 @@ export const api = {
       client.put('/llm/settings', settings),
     testProvider: (provider: string, model?: string): Promise<{ success: boolean; provider: string; model: string; message: string }> =>
       client.post(`/llm/test/${provider}`, null, { params: { model } }),
+  },
+
+  // 会员系统 API
+  membership: {
+    me: (): Promise<Membership> => client.get('/membership/me'),
+    plans: (): Promise<PricingPlan[]> => client.get('/membership/plans'),
+    activate: (code: string): Promise<Membership> => client.post('/membership/activate', { code }),
+    purchase: (level: string, months: number): Promise<Membership> => client.post('/membership/purchase', { level, months }),
+    transactions: (): Promise<MembershipTransaction[]> => client.get('/membership/transactions'),
+    installedScenes: (): Promise<string[]> => client.get('/membership/installed-scenes'),
+    installScene: (sceneId: string): Promise<any> => client.post(`/membership/install-scene/${sceneId}`),
+  },
+
+  // 技能市场 API
+  skillsMarket: {
+    discover: (q?: string): Promise<DiscoverSkill[]> =>
+      client.get('/skills-market/discover', { params: { q: q || '' } }),
+    installed: (): Promise<InstalledSkill[]> =>
+      client.get('/skills-market/installed'),
+    detail: (name: string): Promise<InstalledSkill> =>
+      client.get(`/skills-market/installed/${name}`),
+    install: (pkg: string): Promise<InstalledSkill> =>
+      client.post('/skills-market/install', { package: pkg }),
+    uninstall: (name: string): Promise<{ status: string }> =>
+      client.delete(`/skills-market/installed/${name}`),
+  },
+
+  // 创意执行流程 API
+  creativity: {
+    execute: (data: { scene_id: string; input_text: string; input_files?: string[] }): Promise<CreativityExecuteResponse> =>
+      client.post('/creativity/execute', data),
+    getArtifact: (executionId: string): Promise<ArtifactOut> =>
+      client.get(`/creativity/artifacts/${executionId}`),
   },
 }
 

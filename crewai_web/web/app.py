@@ -13,6 +13,8 @@ from crewai_web.web.config import ensure_storage_dirs, STORAGE_DIR, ENV_FILE
 logger = logging.getLogger(__name__)
 
 
+from crewai_web.web.database import init_db, close_pool
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
@@ -26,8 +28,15 @@ async def lifespan(app: FastAPI):
     
     ensure_storage_dirs()
     print(f"✅ Storage directory ready: {STORAGE_DIR}")
+    # 初始化数据库（如果可用）
+    try:
+        await init_db()
+    except Exception as e:
+        print(f"⚠️  Database not available yet: {e}")
+        print("   Auth features will not work until PostgreSQL is running.")
     yield
     # 关闭时
+    await close_pool()
     print("🛑 Shutting down...")
 
 

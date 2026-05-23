@@ -1,223 +1,439 @@
 <template>
   <div class="skills-page">
-    <div class="page-header">
-      <div class="header-left">
-        <h2>🛠️ Skills 管理</h2>
-        <p class="subtitle">查看和管理所有可用的 Skills</p>
-      </div>
-      <div class="header-right">
-        <el-statistic title="总 Skills" :value="statistics.total_skills" />
-        <el-statistic title="带脚本" :value="statistics.skills_with_scripts" />
+    <!-- 顶部渐变 Banner -->
+    <div class="page-banner">
+      <div class="banner-content">
+        <h1>🔧 技能发现与管理</h1>
+        <p class="banner-desc">从 skills.sh 发现热门技能，一键安装，AI 自动生成技能说明</p>
+        <div class="banner-stats">
+          <el-tag type="info" size="large" effect="dark" round>
+            🌐 发现 {{ discoverSkills.length }} 个可用技能
+          </el-tag>
+          <el-tag type="success" size="large" effect="dark" round>
+            📦 已安装 {{ installedSkills.length }} 个技能
+          </el-tag>
+        </div>
       </div>
     </div>
 
-    <el-card class="content-card">
-      <el-table
-        :data="skills"
-        v-loading="loading"
-        style="width: 100%"
-        @row-click="handleRowClick"
-      >
-        <el-table-column prop="name" label="名称" width="200">
-          <template #default="{ row }">
-            <div class="skill-name">
-              <el-icon v-if="row.has_scripts" color="#67C23A"><Tools /></el-icon>
-              <el-icon v-else color="#909399"><Document /></el-icon>
-              <span>{{ row.name }}</span>
-            </div>
+    <!-- Section 1: 热门技能发现 -->
+    <div class="section">
+      <div class="section-header">
+        <h2>🔥 热门技能发现</h2>
+        <el-input
+          v-model="searchQuery"
+          placeholder="搜索技能..."
+          clearable
+          style="width: 300px"
+          @input="debouncedSearch"
+        >
+          <template #prefix>
+            <el-icon><Search /></el-icon>
           </template>
-        </el-table-column>
+        </el-input>
+      </div>
 
-        <el-table-column prop="metadata.description" label="描述" min-width="300">
-          <template #default="{ row }">
-            <span class="description">{{ row.metadata.description }}</span>
-          </template>
-        </el-table-column>
-
-        <el-table-column prop="metadata.version" label="版本" width="100" />
-
-        <el-table-column prop="metadata.author" label="作者" width="150" />
-
-        <el-table-column label="类型" width="120">
-          <template #default="{ row }">
-            <el-tag v-if="row.has_scripts" type="success" size="small">
-              Skills + Tools
-            </el-tag>
-            <el-tag v-else type="info" size="small">
-              Skills Only
-            </el-tag>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="操作" width="150">
-          <template #default="{ row }">
+      <div v-loading="discoverLoading" class="skill-grid">
+        <el-empty v-if="!discoverLoading && discoverSkills.length === 0" description="暂无发现的技能" />
+        <el-card
+          v-for="skill in discoverSkills"
+          :key="skill.name"
+          class="skill-card discover-card"
+          shadow="hover"
+        >
+          <div class="card-header">
+            <span class="skill-name">{{ skill.name }}</span>
+            <el-tag size="small" type="info">{{ skill.source }}</el-tag>
+          </div>
+          <p class="skill-desc">{{ skill.description || '暂无描述' }}</p>
+          <div class="card-footer">
+            <span class="install-count">
+              <el-icon><Download /></el-icon>
+              {{ skill.installs }} 次安装
+            </span>
             <el-button
+              v-if="!isInstalled(skill.name)"
               type="primary"
               size="small"
-              @click.stop="viewDetail(row.name)"
+              :loading="installingSkills.has(skill.name)"
+              @click="handleInstall(skill)"
             >
-              查看详情
+              安装
             </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
-
-    <!-- 详情对话框 -->
-    <el-dialog
-      v-model="detailDialogVisible"
-      :title="`Skill: ${currentSkill?.name}`"
-      width="70%"
-      destroy-on-close
-    >
-      <div v-if="currentSkill" class="skill-detail">
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="名称">
-            {{ currentSkill.metadata.name }}
-          </el-descriptions-item>
-          <el-descriptions-item label="版本">
-            {{ currentSkill.metadata.version || 'N/A' }}
-          </el-descriptions-item>
-          <el-descriptions-item label="作者">
-            {{ currentSkill.metadata.author || 'N/A' }}
-          </el-descriptions-item>
-          <el-descriptions-item label="类型">
-            <el-tag v-if="currentSkill.has_scripts" type="success">
-              Skills + Tools
-            </el-tag>
-            <el-tag v-else type="info">Skills Only</el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="描述" :span="2">
-            {{ currentSkill.metadata.description }}
-          </el-descriptions-item>
-        </el-descriptions>
-
-        <div v-if="currentSkill.scripts && currentSkill.scripts.length > 0" class="scripts-section">
-          <h3>关联的 Tools</h3>
-          <el-table :data="currentSkill.scripts" size="small">
-            <el-table-column prop="name" label="脚本名称" />
-            <el-table-column prop="size" label="大小">
-              <template #default="{ row }">
-                {{ formatSize(row.size) }}
-              </template>
-            </el-table-column>
-          </el-table>
-        </div>
-
-        <div class="content-section">
-          <h3>Skill 内容</h3>
-          <el-input
-            v-model="currentSkill.content"
-            type="textarea"
-            :rows="20"
-            readonly
-            class="content-textarea"
-          />
-        </div>
+            <el-button
+              v-else
+              type="success"
+              size="small"
+              disabled
+            >
+              已安装 ✓
+            </el-button>
+          </div>
+        </el-card>
       </div>
-    </el-dialog>
+    </div>
+
+    <!-- Section 2: 已安装技能 -->
+    <div class="section">
+      <div class="section-header">
+        <h2>📦 已安装技能</h2>
+      </div>
+
+      <div v-loading="installedLoading" class="skill-grid">
+        <el-empty v-if="!installedLoading && installedSkills.length === 0" description="暂未安装任何技能" />
+        <el-card
+          v-for="skill in installedSkills"
+          :key="skill.name"
+          class="skill-card installed-card"
+          shadow="hover"
+        >
+          <div class="card-header">
+            <span class="skill-name">{{ skill.name }}</span>
+            <el-button
+              type="danger"
+              size="small"
+              plain
+              :loading="uninstallingSkills.has(skill.name)"
+              @click="handleUninstall(skill)"
+            >
+              卸载
+            </el-button>
+          </div>
+          <p class="skill-summary">{{ skill.summary }}</p>
+
+          <!-- 详细说明折叠区域 -->
+          <el-collapse v-model="expandedSkills" class="detail-collapse">
+            <el-collapse-item :name="skill.name">
+              <template #title>
+                <span class="detail-toggle">📋 详细说明</span>
+              </template>
+              <div class="detail-content">
+                <div v-if="skill.what_it_does" class="detail-block">
+                  <h4>🔍 详细说明</h4>
+                  <p>{{ skill.what_it_does }}</p>
+                </div>
+                <div v-if="skill.when_to_use && skill.when_to_use.length" class="detail-block">
+                  <h4>🎯 使用场景</h4>
+                  <ul>
+                    <li v-for="(item, idx) in skill.when_to_use" :key="idx">{{ item }}</li>
+                  </ul>
+                </div>
+                <div v-if="skill.key_features && skill.key_features.length" class="detail-block">
+                  <h4>⭐ 核心功能</h4>
+                  <ul>
+                    <li v-for="(item, idx) in skill.key_features" :key="idx">{{ item }}</li>
+                  </ul>
+                </div>
+                <div v-if="skill.example" class="detail-block">
+                  <h4>💡 使用示例</h4>
+                  <pre class="example-code">{{ skill.example }}</pre>
+                </div>
+              </div>
+            </el-collapse-item>
+          </el-collapse>
+        </el-card>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Document, Tools } from '@element-plus/icons-vue'
+import { ref, computed, onMounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search, Download } from '@element-plus/icons-vue'
 import { api } from '@/api'
-import type { Skill, SkillsStatistics } from '@/api/types'
+import type { DiscoverSkill, InstalledSkill } from '@/api/types'
 
-const loading = ref(false)
-const skills = ref<Skill[]>([])
-const statistics = ref<SkillsStatistics>({
-  total_skills: 0,
-  skills_with_scripts: 0,
-  skills_by_directory: {}
-})
+// --- State ---
+const searchQuery = ref('')
+const discoverLoading = ref(false)
+const installedLoading = ref(false)
+const discoverSkills = ref<DiscoverSkill[]>([])
+const installedSkills = ref<InstalledSkill[]>([])
+const installingSkills = ref<Set<string>>(new Set())
+const uninstallingSkills = ref<Set<string>>(new Set())
+const expandedSkills = ref<string[]>([])
 
-const detailDialogVisible = ref(false)
-const currentSkill = ref<Skill | null>(null)
+let searchTimer: ReturnType<typeof setTimeout> | null = null
 
-const loadSkills = async () => {
-  loading.value = true
+// --- Computed ---
+const installedNameSet = computed(() => new Set(installedSkills.value.map(s => s.name)))
+
+const isInstalled = (name: string) => installedNameSet.value.has(name)
+
+// --- Methods ---
+const loadDiscover = async (q?: string) => {
+  discoverLoading.value = true
   try {
-    const [skillsData, statsData] = await Promise.all([
-      api.skills.list(),
-      api.skills.getStatistics()
-    ])
-    skills.value = skillsData
-    statistics.value = statsData
+    const result = await api.skillsMarket.discover(q)
+    discoverSkills.value = result
   } catch (error: any) {
-    ElMessage.error('加载 Skills 失败: ' + (error.message || '未知错误'))
+    console.error('[Skills] discover error:', error)
+    ElMessage.error('加载发现技能失败: ' + (error.message || '未知错误'))
   } finally {
-    loading.value = false
+    discoverLoading.value = false
   }
 }
 
-const viewDetail = async (skillName: string) => {
+const loadInstalled = async () => {
+  installedLoading.value = true
   try {
-    currentSkill.value = await api.skills.getDetail(skillName)
-    detailDialogVisible.value = true
+    installedSkills.value = await api.skillsMarket.installed()
   } catch (error: any) {
-    ElMessage.error('加载 Skill 详情失败: ' + (error.message || '未知错误'))
+    ElMessage.error('加载已安装技能失败: ' + (error.message || '未知错误'))
+  } finally {
+    installedLoading.value = false
   }
 }
 
-const handleRowClick = (row: Skill) => {
-  viewDetail(row.name)
+const debouncedSearch = () => {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    loadDiscover(searchQuery.value)
+  }, 300)
 }
 
-const formatSize = (bytes: number): string => {
-  if (bytes < 1024) return bytes + ' B'
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB'
-  return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
+const handleInstall = async (skill: DiscoverSkill) => {
+  installingSkills.value.add(skill.name)
+  try {
+    await api.skillsMarket.install(skill.name)
+    ElMessage.success(`技能 "${skill.name}" 安装成功！`)
+    await loadInstalled()
+  } catch (error: any) {
+    ElMessage.error('安装失败: ' + (error.message || '未知错误'))
+  } finally {
+    installingSkills.value.delete(skill.name)
+  }
 }
 
+const handleUninstall = async (skill: InstalledSkill) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要卸载技能 "${skill.name}" 吗？卸载后将无法使用该技能。`,
+      '确认卸载',
+      { confirmButtonText: '确认卸载', cancelButtonText: '取消', type: 'warning' }
+    )
+    uninstallingSkills.value.add(skill.name)
+    await api.skillsMarket.uninstall(skill.name)
+    ElMessage.success(`技能 "${skill.name}" 已卸载`)
+    await loadInstalled()
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error('卸载失败: ' + (error.message || '未知错误'))
+    }
+  } finally {
+    uninstallingSkills.value.delete(skill.name)
+  }
+}
+
+// --- Init ---
 onMounted(() => {
-  loadSkills()
+  loadDiscover()
+  loadInstalled()
 })
 </script>
 
 <style scoped>
-/* Skills 特有样式 */
+.skills-page {
+  min-height: 100vh;
+  background: #f5f7fa;
+}
 
-.skill-name {
+/* Banner */
+.page-banner {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 40px 40px 32px;
+  color: #fff;
+}
+
+.banner-content h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.banner-desc {
+  margin: 0 0 16px;
+  font-size: 15px;
+  opacity: 0.9;
+}
+
+.banner-stats {
   display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Section */
+.section {
+  padding: 24px 40px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  margin-bottom: 20px;
 }
 
-.description {
-  color: #606266;
-  font-size: 14px;
-}
-
-.skill-detail {
-  padding: 10px 0;
-}
-
-.scripts-section,
-.content-section {
-  margin-top: 20px;
-}
-
-.scripts-section h3,
-.content-section h3 {
-  margin: 0 0 12px 0;
-  font-size: 16px;
+.section-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
   color: #303133;
 }
 
-.content-textarea :deep(textarea) {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+/* Grid */
+.skill-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  min-height: 100px;
+}
+
+@media (max-width: 1200px) {
+  .skill-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .skill-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .section {
+    padding: 20px 16px;
+  }
+  .page-banner {
+    padding: 24px 16px;
+  }
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
+/* Cards */
+.skill-card {
+  transition: transform 0.2s;
+}
+
+.skill-card:hover {
+  transform: translateY(-2px);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.skill-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skill-desc {
   font-size: 13px;
+  color: #909399;
+  line-height: 1.5;
+  min-height: 40px;
+  margin: 0 0 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.skill-summary {
+  font-size: 14px;
+  color: #606266;
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.install-count {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #909399;
+}
+
+/* Installed card collapse */
+.detail-collapse {
+  border: none;
+}
+
+.detail-collapse :deep(.el-collapse-item__header) {
+  background: transparent;
+  border: none;
+  height: 32px;
+  line-height: 32px;
+  font-size: 14px;
+}
+
+.detail-collapse :deep(.el-collapse-item__wrap) {
+  border: none;
+  background: transparent;
+}
+
+.detail-toggle {
+  color: #409eff;
+  font-size: 13px;
+}
+
+.detail-content {
+  padding: 4px 0;
+}
+
+.detail-block {
+  margin-bottom: 12px;
+}
+
+.detail-block h4 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  color: #303133;
+}
+
+.detail-block p {
+  margin: 0;
+  font-size: 13px;
+  color: #606266;
   line-height: 1.6;
 }
 
-:deep(.el-table__row) {
-  cursor: pointer;
+.detail-block ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: #606266;
+  line-height: 1.8;
 }
 
-:deep(.el-table__row:hover) {
-  background-color: #f5f7fa;
+.example-code {
+  background: #f4f4f5;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  color: #303133;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0;
 }
 </style>

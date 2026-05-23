@@ -19,6 +19,7 @@
           <p v-if="exec.output_dir">输出目录: {{ exec.output_dir }}</p>
           <div class="exec-actions">
             <el-button size="small" @click="viewDetails(exec)">查看详情</el-button>
+            <el-button size="small" type="primary" @click="$router.push(`/flow/${exec.id}`)">查看流程</el-button>
           </div>
         </el-card>
       </el-timeline-item>

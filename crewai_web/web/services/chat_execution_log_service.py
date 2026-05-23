@@ -23,7 +23,7 @@ class ExecutionLogService:
     
     def __init__(self, storage_dir: Path = None):
         if storage_dir is None:
-            storage_dir = Path("/workspaces/one_person_company/storage/execution_logs")
+            storage_dir = Path(__file__).parent.parent.parent.parent.parent / "storage" / "execution_logs"
         
         self.storage_dir = storage_dir
         self.storage_dir.mkdir(parents=True, exist_ok=True)

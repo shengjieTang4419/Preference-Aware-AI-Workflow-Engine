@@ -10,6 +10,7 @@ AGENTS_DIR = STORAGE_DIR / "agents"
 TASKS_DIR = STORAGE_DIR / "tasks"
 CREWS_DIR = STORAGE_DIR / "crews"
 EXECUTIONS_DIR = STORAGE_DIR / "executions"
+ARTIFACTS_DIR = STORAGE_DIR / "artifacts"
 
 # 文件目录配置
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", PROJECT_ROOT / "upload"))
@@ -33,3 +34,15 @@ ALLOWED_BROWSE_ROOTS = [
     Path("/tmp"),
     Path.home() / "workspace",
 ]
+
+# ── 数据库配置 ─────────────────────────────────────
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PORT = int(os.getenv("DB_PORT", "5432"))
+DB_NAME = os.getenv("DB_NAME", "crewai_db")
+DB_USER = os.getenv("DB_USER", "postgres")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+
+# ── JWT 配置 ───────────────────────────────────────
+JWT_SECRET = os.getenv("JWT_SECRET", "")
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRE_HOURS = int(os.getenv("JWT_EXPIRE_HOURS", "72"))

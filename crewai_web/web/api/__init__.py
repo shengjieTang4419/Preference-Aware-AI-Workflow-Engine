@@ -13,6 +13,15 @@ from .skills import router as skills_router
 from .execution_logs import router as execution_logs_router
 from .preferences import router as preferences_router
 from .llm_settings import router as llm_settings_router
+from .auth import router as auth_router
+from .scenes import router as scenes_router
+from .creations import router as creations_router
+from .scene_configs import router as scene_configs_router
+from .membership import router as membership_router
+from .skills_market import router as skills_market_router
+from .creativity import router as creativity_router
+from .execution_flow import router as execution_flow_router
+
 
 api_router = APIRouter()
 
@@ -26,3 +35,11 @@ api_router.include_router(skills_router)
 api_router.include_router(execution_logs_router)
 api_router.include_router(preferences_router)
 api_router.include_router(llm_settings_router)
+api_router.include_router(auth_router)
+api_router.include_router(scenes_router)
+api_router.include_router(creations_router)
+api_router.include_router(scene_configs_router)
+api_router.include_router(membership_router)
+api_router.include_router(skills_market_router)
+api_router.include_router(creativity_router)
+api_router.include_router(execution_flow_router)
