@@ -11,7 +11,7 @@ class VerifyEvent(BusinessEvent):
 
     name = "复验并更新 Crew"
     step = 7
-    total = 7
+    total = 9
 
     async def do_execute(self, ctx: EventContext) -> None:
         # 更新 Crew（task_ids + agent_model_assignments）

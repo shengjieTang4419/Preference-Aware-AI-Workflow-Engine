@@ -103,6 +103,7 @@ async def init_db():
                 output_dir TEXT,
                 crew_template TEXT,
                 description TEXT,
+                artifact_skills JSONB DEFAULT '[]',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -161,25 +162,25 @@ async def init_db():
         # 插入默认场景卡片（如果为空）
         count = await conn.fetchval("SELECT COUNT(*) FROM scene_configs")
         if count == 0:
-            await conn.executemany(
-                """INSERT INTO scene_configs (id, icon, title, subtitle, placeholder, category, tags, output_format, sort_order, price_tier, exec_mode)
-                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)""",
+                await conn.executemany(
+                """INSERT INTO scene_configs (id, icon, title, subtitle, placeholder, category, tags, output_format, sort_order, price_tier, exec_mode, artifact_skills)
+                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb)""",
                 [
                     ('document', '📝', '结构化文档', '输入想法，AI 生成专业文档',
                      '例如：帮我写一份竞品分析报告，分析 xxx 行业的前 3 名...',
-                     'document', ['热门'], 'markdown', 1, 'free', 'auto'),
+                     'document', ['热门'], 'markdown', 1, 'free', 'auto', '["documentation-writer"]'),
                     ('data-analysis', '📊', '数据分析', '上传数据，AI 生成分析报告',
                      '例如：帮我分析这个 CSV 的用户留存趋势...',
-                     'data', ['热门'], 'markdown', 2, 'free', 'auto'),
+                     'data', ['热门'], 'markdown', 2, 'free', 'auto', '["excel-automation"]'),
                     ('ppt', '🎨', '产品 PPT', '描述产品，AI 生成演示文稿',
                      '例如：帮我做一个 SaaS 产品的融资 PPT...',
-                     'document', ['推荐'], 'pptx', 3, 'basic', 'manual'),
+                     'document', ['推荐'], 'pptx', 3, 'basic', 'manual', '["pptx"]'),
                     ('code', '💻', '写代码', '描述需求，AI 生成代码项目',
                      '例如：帮我写一个 Todo App，用 React + TypeScript...',
-                     'code', [], 'zip', 4, 'free', 'auto'),
+                     'code', [], 'zip', 4, 'free', 'auto', '["code-generator"]'),
                     ('excel', '📈', 'Excel 图表', '上传数据，AI 生成可视化图表',
                      '例如：帮我做一个销售数据看板...',
-                     'data', [], 'xlsx', 5, 'basic', 'auto'),
+                     'data', [], 'xlsx', 5, 'basic', 'auto', '["excel-automation"]'),
                     ('music', '🎵', '生成音乐', '描述风格，AI 创作音乐',
                      '例如：生成一段 30 秒的轻快电子音乐...',
                      'media', ['新上线'], 'mp3', 6, 'premium', 'manual'),
@@ -210,6 +211,36 @@ async def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 completed_at TIMESTAMP
             )
+        """)
+
+        # 给 scene_configs 追加 artifact_skills 字段（兼容已有数据库）
+        await conn.execute("""
+            ALTER TABLE scene_configs ADD COLUMN IF NOT EXISTS artifact_skills JSONB DEFAULT '[]'
+        """)
+
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS artifact_skill_executions (
+                id SERIAL PRIMARY KEY,
+                execution_id VARCHAR(100) NOT NULL,
+                skill_name VARCHAR(100) NOT NULL,
+                step_index INT NOT NULL DEFAULT 0,
+                status VARCHAR(20) NOT NULL DEFAULT 'pending',
+                input_summary TEXT,
+                output_files TEXT[],
+                output_metadata JSONB DEFAULT '{}',
+                error_message TEXT,
+                started_at TIMESTAMP,
+                completed_at TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # 给 creative_artifacts 追加 skill_chain 和 crew_execution_id（兼容已有数据库）
+        await conn.execute("""
+            ALTER TABLE creative_artifacts ADD COLUMN IF NOT EXISTS skill_chain JSONB DEFAULT '[]'
+        """)
+        await conn.execute("""
+            ALTER TABLE creative_artifacts ADD COLUMN IF NOT EXISTS crew_execution_id VARCHAR(100)
         """)
 
         # 给所有免费用户自动安装免费场景

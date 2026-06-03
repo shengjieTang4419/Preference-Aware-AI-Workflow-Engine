@@ -86,6 +86,12 @@ def _fallback_top_skills() -> list:
          "description": "浏览器自动化技能"},
         {"name": "remotion-best-practices", "source": "remotion-dev/skills", "installs": "299K",
          "description": "Remotion 视频生成最佳实践"},
+        {"name": "pptx", "source": "anthropics/skills", "installs": "126.4K",
+         "description": "专业 PPT 演示文稿生成，支持从零创建和模板编辑"},
+        {"name": "excel-automation", "source": "claude-office-skills/skills", "installs": "9.2K",
+         "description": "Excel 自动化：数据处理、图表生成、公式操作"},
+        {"name": "documentation-writer", "source": "github/awesome-copilot", "installs": "19.3K",
+         "description": "专业文档撰写：报告、方案、技术文档"},
     ]
 
 

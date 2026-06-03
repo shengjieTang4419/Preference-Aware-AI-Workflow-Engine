@@ -11,7 +11,7 @@ class CreateCrewEvent(BusinessEvent):
 
     name = "创建 Crew"
     step = 4
-    total = 7
+    total = 9
 
     async def do_execute(self, ctx: EventContext) -> None:
         crew_data = CrewCreate(

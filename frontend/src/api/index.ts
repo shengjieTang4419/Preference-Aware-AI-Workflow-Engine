@@ -1,11 +1,11 @@
 import axios from 'axios'
 import type { AxiosInstance } from 'axios'
-import type { Agent, Task, Crew, Execution, Skill, SkillsStatistics, PreferenceProposal, PreferenceProposalDetail, DiffView, LLMProvider, LLMSettings, Scene, SceneConfig, Creation, Membership, PricingPlan, MembershipTransaction, DiscoverSkill, InstalledSkill, ArtifactOut, CreativityExecuteResponse, FlowData } from './types'
+import type { Agent, Task, Crew, Execution, Skill, SkillsStatistics, PreferenceProposal, PreferenceProposalDetail, DiffView, LLMProvider, LLMSettings, Scene, SceneConfig, Creation, Membership, PricingPlan, MembershipTransaction, DiscoverSkill, InstalledSkill, MagicWandMatchResponse, FlowData } from './types'
 
 // 创建 axios 实例
 const client = axios.create({
   baseURL: '/api',
-  timeout: 10000,
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -111,15 +111,26 @@ export const api = {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
     },
+    // 上传图片，返回本地路径 + OCR 结果
+    uploadImage: (file: File): Promise<{ filename: string; path: string; size: number; ocr_text: string; ocr_success: boolean }> => {
+      const form = new FormData()
+      form.append('file', file)
+      return client.post('/files/upload-image', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+    },
+    // 对图片进行 OCR 识别
+    ocrImage: (imagePath: string): Promise<{ image_path: string; text: string; success: boolean }> =>
+      client.post('/files/ocr', { image_path: imagePath }),
     listDocs: (): Promise<{ files: Array<{ name: string; path: string; size: number }> }> =>
       client.get('/files/list-docs'),
   },
 
   chat: {
-    generateCrew: (scenario: string, doc_filenames?: string[]): Promise<{
+    generateCrew: (scenario: string, scene_id?: string, doc_filenames?: string[], ocr_texts?: string[]): Promise<{
       execution_id: string
       status: string
-    }> => client.post('/chat/generate-crew', { scenario, doc_filenames }),
+    }> => client.post('/chat/generate-crew', { scenario, scene_id, doc_filenames, ocr_texts }),
   },
 
   // Skills API
@@ -218,12 +229,10 @@ export const api = {
       client.delete(`/skills-market/installed/${name}`),
   },
 
-  // 创意执行流程 API
-  creativity: {
-    execute: (data: { scene_id: string; input_text: string; input_files?: string[] }): Promise<CreativityExecuteResponse> =>
-      client.post('/creativity/execute', data),
-    getArtifact: (executionId: string): Promise<ArtifactOut> =>
-      client.get(`/creativity/artifacts/${executionId}`),
+  // 魔法棒 API
+  magicWand: {
+    match: (data: { scene_id: string; user_input: string }): Promise<MagicWandMatchResponse> =>
+      client.post('/magic-wand/match', data),
   },
 }
 

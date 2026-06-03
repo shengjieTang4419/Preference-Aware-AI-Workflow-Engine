@@ -14,6 +14,7 @@ ARTIFACTS_DIR = STORAGE_DIR / "artifacts"
 
 # 文件目录配置
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", PROJECT_ROOT / "upload"))
+UPLOAD_IMAGES_DIR = UPLOAD_DIR / "images"
 OUTPUT_DIR = STORAGE_DIR / "results"
 
 # 环境变量文件
@@ -26,6 +27,7 @@ def ensure_storage_dirs():
     CREWS_DIR.mkdir(parents=True, exist_ok=True)
     EXECUTIONS_DIR.mkdir(parents=True, exist_ok=True)
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    UPLOAD_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # 允许的文件浏览根目录 (安全限制)
@@ -46,3 +48,8 @@ DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 JWT_SECRET = os.getenv("JWT_SECRET", "")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_HOURS = int(os.getenv("JWT_EXPIRE_HOURS", "72"))
+
+# ── 阿里云 OCR 配置 ─────────────────────────────────
+ALIYUN_OCR_ACCESS_KEY_ID = os.getenv("ALIYUN_OCR_ACCESS_KEY_ID", "")
+ALIYUN_OCR_ACCESS_KEY_SECRET = os.getenv("ALIYUN_OCR_ACCESS_KEY_SECRET", "")
+ALIYUN_OCR_ENDPOINT = os.getenv("ALIYUN_OCR_ENDPOINT", "ocr-api.cn-hangzhou.aliyuncs.com")

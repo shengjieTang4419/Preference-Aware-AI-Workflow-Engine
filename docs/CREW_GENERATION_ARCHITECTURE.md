@@ -12,7 +12,7 @@
 - 易于扩展和维护
 
 **与 Crew 执行架构的区别**：
-- **Crew 生成**：固定的 7 步流程，使用 Pipeline 模式
+- **Crew 生成**：固定的 8 步流程，使用 Pipeline 模式
 - **Crew 执行**：动态任务数量，使用责任链 + 策略模式
 
 ---
@@ -45,11 +45,11 @@
 │                                                              │
 │  职责：                                                       │
 │  1. 创建 EventContext（强类型上下文）                        │
-│  2. 按顺序执行 7 个固定步骤                                   │
+│  2. 按顺序执行 8 个固定步骤                                   │
 │  3. 管理执行状态（RUNNING → COMPLETED/FAILED）              │
 │  4. 推送完成/错误消息到 WebSocket                            │
 │                                                              │
-│  固定的 7 个步骤：                                            │
+│  固定的 8 个步骤：                                            │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │  1. GenerateTopicEvent       → 生成项目主题          │   │
 │  │  2. GenerateTasksPlanEvent   → 规划任务              │   │
@@ -58,6 +58,7 @@
 │  │  5. CreateTasksEvent         → 创建 Tasks            │   │
 │  │  6. AssignModelsEvent        → 分配 AI 模型          │   │
 │  │  7. VerifyEvent              → 复验并更新配置        │   │
+│  │  8. ExecuteArtifactEvent     → 执行制品生成Skills    │   │
 │  └──────────────────────────────────────────────────────┘   │
 └────────────────────────┬────────────────────────────────────┘
                          │
@@ -111,7 +112,7 @@
 | 特性 | Pipeline | 责任链 |
 |------|----------|--------|
 | **流程** | 固定顺序，所有步骤必须执行 | 动态流程，可中断 |
-| **步骤数量** | 固定（7 步） | 动态（根据任务数量） |
+| **步骤数量** | 固定（8 步） | 动态（根据任务数量） |
 | **适用场景** | Crew 生成（固定流程） | Crew 执行（动态任务） |
 | **复杂度** | 简单，易理解 | 复杂，灵活 |
 
@@ -128,6 +129,7 @@ class CrewGenerationPipeline:
             CreateTasksEvent(),
             AssignModelsEvent(),
             VerifyEvent(),
+            ExecuteArtifactEvent(),
         ]
     
     async def execute(self, execution_id: str, scenario: str) -> dict:
@@ -216,7 +218,7 @@ class EventContext:
 class GenerateTopicEvent(BusinessEvent):
     name = "生成项目主题"
     step = 1
-    total = 7
+    total = 8
     
     async def do_execute(self, ctx: EventContext) -> None:
         ai_client = AIClient.get_default()
@@ -243,7 +245,7 @@ class GenerateTopicEvent(BusinessEvent):
 class GenerateTasksPlanEvent(BusinessEvent):
     name = "规划任务"
     step = 2
-    total = 7
+    total = 8
     
     async def do_execute(self, ctx: EventContext) -> None:
         ctx.tasks_plan = await task_generator.generate_tasks_plan(
@@ -268,7 +270,7 @@ class GenerateTasksPlanEvent(BusinessEvent):
 class MatchAgentsEvent(BusinessEvent):
     name = "匹配 Agents"
     step = 3
-    total = 7
+    total = 8
     
     async def do_execute(self, ctx: EventContext) -> None:
         ctx.agents_mapping = await agent_generator.match_or_create_agents(
@@ -294,7 +296,7 @@ class MatchAgentsEvent(BusinessEvent):
 class CreateCrewEvent(BusinessEvent):
     name = "创建 Crew"
     step = 4
-    total = 7
+    total = 8
     
     async def do_execute(self, ctx: EventContext) -> None:
         crew_data = CrewCreate(
@@ -329,7 +331,7 @@ class CreateCrewEvent(BusinessEvent):
 class CreateTasksEvent(BusinessEvent):
     name = "创建 Tasks"
     step = 5
-    total = 7
+    total = 8
     
     async def do_execute(self, ctx: EventContext) -> None:
         ctx.task_ids = task_generator.create_tasks(
@@ -360,7 +362,7 @@ class CreateTasksEvent(BusinessEvent):
 class AssignModelsEvent(BusinessEvent):
     name = "分配 AI 模型"
     step = 6
-    total = 7
+    total = 8
     
     async def do_execute(self, ctx: EventContext) -> None:
         ctx.agent_model_assignments = await model_assignment_service.assign_models_for_crew(
@@ -390,7 +392,7 @@ class AssignModelsEvent(BusinessEvent):
 class VerifyEvent(BusinessEvent):
     name = "复验配置"
     step = 7
-    total = 7
+    total = 8
     
     async def do_execute(self, ctx: EventContext) -> None:
         crew_service.update_crew(
@@ -400,6 +402,43 @@ class VerifyEvent(BusinessEvent):
                 agent_model_assignments=ctx.agent_model_assignments,
             ),
         )
+```
+
+### 步骤 8: ExecuteArtifactEvent
+
+**职责**：执行制品生成Skills，生成最终产出物
+
+**输入**：
+- `ctx.scenario` — 用户场景描述
+- `ctx.execution_id` — 执行ID
+- `ctx.crew_output` — Crew执行的文本输出（如果有）
+
+**输出**：
+- `ctx.artifact_skills` — 匹配到的skills列表
+- `ctx.artifact_result` — 制品最终结果
+
+**实现**：
+```python
+class ExecuteArtifactEvent(BusinessEvent):
+    name = "生成制品"
+    step = 8
+    total = 8
+
+    async def do_execute(self, ctx: EventContext) -> None:
+        # 1. 匹配artifact skills
+        matched = await match_artifact_skills(ctx.scenario, ctx.scenario)
+        ctx.artifact_skills = [s["name"] for s in matched]
+
+        # 2. 执行skill链
+        chain = get_skill_chain()
+        result = await chain.execute(
+            skill_names=ctx.artifact_skills,
+            crew_output=ctx.crew_output or ctx.scenario,
+            execution_id=ctx.execution_id,
+        )
+
+        # 3. 保存结果
+        ctx.artifact_result = result.dict()
 ```
 
 ---
@@ -446,7 +485,7 @@ class WebSocketManager:
   "type": "progress",
   "message": "⏳ 生成项目主题...",
   "step": 1,
-  "total": 7,
+  "total": 8,
   "status": "running",
   "percentage": 14
 }
@@ -536,7 +575,7 @@ async def execute(self, execution_id: str, scenario: str) -> dict:
 | 维度 | Crew 生成 | Crew 执行 |
 |------|-----------|-----------|
 | **目标** | 生成 Crew 配置 | 执行 Crew 任务 |
-| **流程** | 固定 7 步 | 动态（根据任务数） |
+| **流程** | 固定 8 步 | 动态（根据任务数） |
 | **模式** | Pipeline | 责任链 + 策略 |
 | **上下文** | EventContext（dataclass） | ExecutionContext（dict-like） |
 | **调度** | 顺序执行 | Sequential/Hierarchical |

@@ -8,6 +8,8 @@ from .create_crew_event import CreateCrewEvent
 from .create_tasks_event import CreateTasksEvent
 from .assign_models_event import AssignModelsEvent
 from .verify_event import VerifyEvent
+from .run_crew_event import RunCrewEvent
+from .execute_artifact_event import ExecuteArtifactEvent
 
 __all__ = [
     "GenerateTopicEvent",
@@ -17,4 +19,6 @@ __all__ = [
     "CreateTasksEvent",
     "AssignModelsEvent",
     "VerifyEvent",
+    "RunCrewEvent",
+    "ExecuteArtifactEvent",
 ]

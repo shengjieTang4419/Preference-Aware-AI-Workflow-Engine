@@ -26,12 +26,8 @@ class SkillMetadataParser:
                     frontmatter = parts[1].strip()
                     body = parts[2].strip()
 
-                    # 简单解析 YAML（只支持基本的 key: value）
-                    metadata = {}
-                    for line in frontmatter.split("\n"):
-                        if ":" in line:
-                            key, value = line.split(":", 1)
-                            metadata[key.strip()] = value.strip().strip('"')
+                    # 简单解析 YAML（支持嵌套 key: value）
+                    metadata = SkillMetadataParser._parse_frontmatter(frontmatter)
 
                     # 提取描述（第一段文字）
                     if not metadata.get("description"):
@@ -41,14 +37,71 @@ class SkillMetadataParser:
                                 metadata["description"] = line[:200]
                                 break
 
+                    # 标准化新字段
+                    metadata.setdefault("type", "tool")  # tool | artifact
+                    metadata.setdefault("output_type", "")
+                    metadata.setdefault("input_requires", [])
+                    metadata.setdefault("execution", {})
+
                     return metadata
 
             # 如果没有 frontmatter，从内容提取
-            return {"name": skill_name, "description": "No description available"}
+            return {
+                "name": skill_name,
+                "description": "No description available",
+                "type": "tool",
+                "output_type": "",
+                "input_requires": [],
+                "execution": {},
+            }
 
         except Exception as e:
             logger.error(f"Failed to parse skill metadata from {skill_md_path}: {e}")
             return {"name": skill_md_path.parent.name, "description": "Error loading skill"}
+
+    @staticmethod
+    def _parse_frontmatter(frontmatter: str) -> Dict[str, Any]:
+        """解析 YAML frontmatter，支持列表和嵌套"""
+        metadata = {}
+        current_key = None
+        current_list = None
+
+        for line in frontmatter.split("\n"):
+            stripped = line.strip()
+            if not stripped:
+                continue
+
+            # 列表项
+            if stripped.startswith("- "):
+                if current_key and current_list is not None:
+                    current_list.append(stripped[2:].strip().strip('"'))
+                continue
+
+            # key: value
+            if ":" in stripped:
+                key, value = stripped.split(":", 1)
+                key = key.strip()
+                value = value.strip().strip('"')
+
+                # 判断是否是列表的开始（值为空）
+                if not value:
+                    current_key = key
+                    current_list = []
+                    metadata[key] = current_list
+                else:
+                    current_key = key
+                    current_list = None
+                    # 尝试解析JSON值
+                    if value.startswith("[") or value.startswith("{"):
+                        try:
+                            import json
+                            metadata[key] = json.loads(value)
+                        except Exception:
+                            metadata[key] = value
+                    else:
+                        metadata[key] = value
+
+        return metadata
 
     @staticmethod
     def has_scripts(skill_dir: Path) -> bool:

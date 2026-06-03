@@ -17,6 +17,10 @@ dependencies = [
     "asyncpg>=0.31.0",
     "bcrypt>=5.0.0",
     "pyjwt>=2.12.1",
+    "alibabacloud-ocr-api20210707>=1.0.0",
+    "python-pptx>=1.0.0",
+    "pandas>=2.0.0",
+    "matplotlib>=3.7.0",
 ]
 
 [project.scripts]

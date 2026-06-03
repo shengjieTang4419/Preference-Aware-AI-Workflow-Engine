@@ -1,6 +1,7 @@
-from pydantic import BaseModel, Field
-from typing import Optional, List
+from pydantic import BaseModel, Field, field_validator
+from typing import Optional, List, Any
 from datetime import datetime
+import json
 
 
 class SceneConfigBase(BaseModel):
@@ -20,7 +21,32 @@ class SceneConfigBase(BaseModel):
     exec_mode: str = Field("auto", description="执行模式: auto/manual")
     output_dir: Optional[str] = Field(None, description="自动模式下的输出目录")
     crew_template: Optional[str] = Field(None, description="Crew 模板")
+    artifact_skills: List[str] = Field(default_factory=list, description="制品生成所需的Skill列表")
     description: Optional[str] = Field(None, description="详细说明")
+
+    @field_validator("artifact_skills", mode="before")
+    @classmethod
+    def parse_artifact_skills(cls, v: Any) -> list:
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except (json.JSONDecodeError, TypeError):
+                return []
+        if v is None:
+            return []
+        return v
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def parse_tags(cls, v: Any) -> list:
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except (json.JSONDecodeError, TypeError):
+                return []
+        if v is None:
+            return []
+        return v
 
 
 class SceneConfigCreate(SceneConfigBase):
@@ -44,6 +70,7 @@ class SceneConfigUpdate(BaseModel):
     exec_mode: Optional[str] = None
     output_dir: Optional[str] = None
     crew_template: Optional[str] = None
+    artifact_skills: Optional[List[str]] = None
     description: Optional[str] = None
 
 

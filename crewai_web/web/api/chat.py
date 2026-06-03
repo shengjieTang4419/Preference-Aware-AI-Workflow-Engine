@@ -25,7 +25,9 @@ async def generate_crew(request: ChatStreamRequest, background_tasks: Background
         crew_generation_pipeline.execute,
         execution.id,
         request.scenario,
+        request.scene_id,
         request.doc_filenames,
+        request.ocr_texts,
     )
 
     return {"execution_id": execution.id, "status": "pending"}

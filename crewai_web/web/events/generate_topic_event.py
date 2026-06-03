@@ -12,7 +12,7 @@ class GenerateTopicEvent(BusinessEvent):
 
     name = "生成项目主题"
     step = 1
-    total = 7
+    total = 9
 
     async def do_execute(self, ctx: EventContext) -> None:
         ai_client = AIClient.get_default()
@@ -31,10 +31,21 @@ class GenerateTopicEvent(BusinessEvent):
                 doc_context = "\n\n---\n\n".join(doc_contents)
                 doc_context = f"\n\n## 参考文档\n\n{doc_context}\n\n---\n\n"
 
-        # 组装 prompt（将文档内容注入到 scenario 中）
+        # 注入 OCR 文本
+        ocr_context = ""
+        if ctx.ocr_texts:
+            ocr_parts = [t for t in ctx.ocr_texts if t.strip()]
+            if ocr_parts:
+                ocr_context = "\n\n## 图片 OCR 识别结果\n\n" + "\n\n".join(
+                    f"### 图片 {i+1}\n{text}" for i, text in enumerate(ocr_parts)
+                )
+
+        # 组装 prompt（将文档内容 + OCR 注入到 scenario 中）
         scenario_with_docs = ctx.scenario
         if doc_context:
             scenario_with_docs = f"{ctx.scenario}\n\n{doc_context}"
+        if ocr_context:
+            scenario_with_docs = f"{scenario_with_docs}\n\n{ocr_context}"
 
         prompt = ai_client.load_prompt("generator/topic.prompt", scenario=scenario_with_docs)
 

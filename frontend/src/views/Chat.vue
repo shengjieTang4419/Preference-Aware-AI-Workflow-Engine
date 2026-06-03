@@ -157,6 +157,7 @@ const sendMessage = async () => {
     // 提交任务获取 execution_id
     const { execution_id } = await api.chat.generateCrew(
       userMessage,
+      undefined,  // scene_id: Chat 页没有选场景
       selectedDocs.value.length > 0 ? selectedDocs.value : undefined
     )
     

@@ -4,6 +4,8 @@ from pydantic import BaseModel
 from typing import List, Optional
 from crewai_web.web.services import file_service
 from crewai_web.web.services.document_service import get_document_service
+from crewai_web.web.services.ocr_service import recognize_image
+from crewai_web.web.services.image_service import upload_image as upload_image_svc
 
 router = APIRouter(prefix="/files", tags=["files"])
 
@@ -44,6 +46,41 @@ def get_browse_roots():
 async def upload_document(file: UploadFile = File(...)):
     """上传文档文件"""
     return await get_document_service().upload_document(file)
+
+
+class ImageUploadResponse(BaseModel):
+    filename: str
+    path: str
+    size: int
+    ocr_text: str = ""
+    ocr_success: bool = False
+
+
+class OcrRequest(BaseModel):
+    image_path: str
+
+
+class OcrResponse(BaseModel):
+    image_path: str
+    text: str
+    success: bool
+
+
+@router.post("/upload-image", response_model=ImageUploadResponse)
+async def upload_image(file: UploadFile = File(...)):
+    """上传图片文件，自动调用阿里云 OCR 识别文字"""
+    return upload_image_svc(file.filename or "unnamed", file.file)
+
+
+@router.post("/ocr", response_model=OcrResponse)
+async def ocr_image(req: OcrRequest):
+    """对已上传的图片进行 OCR 文字识别"""
+    text = recognize_image(req.image_path)
+    return OcrResponse(
+        image_path=req.image_path,
+        text=text,
+        success=bool(text.strip()),
+    )
 
 
 @router.get("/list-docs")

@@ -41,7 +41,15 @@ class DocumentService:
         path = self.docs_dir / filename
         if not path.exists():
             return None
-        content = path.read_text(encoding="utf-8")
+        # 尝试多种编码
+        for encoding in ("utf-8", "gbk", "gb2312", "latin-1"):
+            try:
+                content = path.read_text(encoding=encoding)
+                return {"filename": filename, "content": content, "length": len(content)}
+            except (UnicodeDecodeError, UnicodeError):
+                continue
+        # 都失败则用 latin-1（不会报错）
+        content = path.read_bytes().decode("latin-1")
         return {"filename": filename, "content": content, "length": len(content)}
 
     def download_output_path(self, filename: str) -> Optional[Path]:

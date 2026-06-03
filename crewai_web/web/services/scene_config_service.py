@@ -36,6 +36,19 @@ async def get_config(config_id: str) -> Optional[SceneConfigOut]:
     return SceneConfigOut(**dict(row))
 
 
+async def get_config_by_title(title: str) -> Optional[SceneConfigOut]:
+    """通过 title 模糊匹配场景配置"""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT * FROM scene_configs WHERE title = $1 AND enabled = TRUE LIMIT 1",
+            title,
+        )
+    if not row:
+        return None
+    return SceneConfigOut(**dict(row))
+
+
 async def create_config(req: SceneConfigCreate) -> SceneConfigOut:
     """创建场景配置"""
     pool = await get_pool()
@@ -48,13 +61,13 @@ async def create_config(req: SceneConfigCreate) -> SceneConfigOut:
             """INSERT INTO scene_configs
                (id, icon, title, subtitle, placeholder, category, tags,
                 output_format, enabled, visible, sort_order, price_tier,
-                exec_mode, output_dir, crew_template, description, created_at, updated_at)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$17)
+                exec_mode, output_dir, crew_template, description, artifact_skills, created_at, updated_at)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$18)
                RETURNING *""",
             req.id, req.icon, req.title, req.subtitle, req.placeholder,
             req.category, req.tags, req.output_format, req.enabled, req.visible,
             req.sort_order, req.price_tier, req.exec_mode, req.output_dir,
-            req.crew_template, req.description, now,
+            req.crew_template, req.description, req.artifact_skills, now,
         )
     logger.info(f"场景配置已创建: {req.id}")
     return SceneConfigOut(**dict(row))

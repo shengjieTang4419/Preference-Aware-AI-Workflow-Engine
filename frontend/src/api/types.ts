@@ -197,6 +197,7 @@ export interface SceneConfig {
   output_dir?: string
   crew_template?: string
   description?: string
+  artifact_skills: string[]
   created_at: string
   updated_at: string
 }
@@ -267,29 +268,18 @@ export interface InstalledSkill {
   raw_content: string
 }
 
-// === 创意执行流程相关类型 ===
+// === 魔法棒 & 制品生成相关类型 ===
 
-export interface ArtifactOut {
-  id: number
-  execution_id: string
-  user_id?: number | null
-  scene_id: string
-  title?: string | null
-  description?: string | null
-  output_type?: string | null
-  output_dir?: string | null
-  output_files: string[]
-  preview_text?: string | null
-  status: 'pending' | 'running' | 'completed' | 'failed'
-  error_message?: string | null
-  created_at: string
-  completed_at?: string | null
+export interface SkillMatch {
+  name: string
+  output_type: string
+  description: string
 }
 
-export interface CreativityExecuteResponse {
-  execution_id: string
-  status: string
-  artifact?: ArtifactOut | null
+export interface MagicWandMatchResponse {
+  scene_id: string
+  skills: SkillMatch[]
+  source: 'preset' | 'scanned' | 'inferred' | 'none'
 }
 
 // === 执行流程图相关类型 ===

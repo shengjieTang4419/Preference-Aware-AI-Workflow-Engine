@@ -10,7 +10,7 @@ class MatchAgentsEvent(BusinessEvent):
 
     name = "匹配/创建 Agent"
     step = 3
-    total = 7
+    total = 9
 
     async def do_execute(self, ctx: EventContext) -> None:
         ctx.agents_mapping = await agent_generator.match_or_create_agents(ctx.tasks_plan)

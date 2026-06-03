@@ -18,6 +18,8 @@ from crewai_web.web.events import (
     CreateTasksEvent,
     AssignModelsEvent,
     VerifyEvent,
+    RunCrewEvent,
+    ExecuteArtifactEvent,
 )
 
 logger = logging.getLogger(__name__)
@@ -35,13 +37,17 @@ class CrewGenerationPipeline:
             CreateTasksEvent(),
             AssignModelsEvent(),
             VerifyEvent(),
+            RunCrewEvent(),
+            ExecuteArtifactEvent(),
         ]
 
     async def execute(
         self,
         execution_id: str,
         scenario: str,
+        scene_id: Optional[str] = None,
         doc_filenames: Optional[list[str]] = None,
+        ocr_texts: Optional[list[str]] = None,
     ) -> dict:
         """
         执行 Pipeline（完整流程，包含状态管理）
@@ -49,6 +55,7 @@ class CrewGenerationPipeline:
         Args:
             execution_id: 执行 ID
             scenario: 用户场景描述
+            scene_id: 场景 ID
             doc_filenames: 上传的文档文件名列表
 
         Returns:
@@ -64,7 +71,9 @@ class CrewGenerationPipeline:
         ctx = EventContext(
             execution_id=execution_id,
             scenario=scenario,
+            scene_id=scene_id,
             doc_filenames=doc_filenames,
+            ocr_texts=ocr_texts,
         )
 
         logger.info(f"[Pipeline] Starting for scenario: {scenario[:100]}...")

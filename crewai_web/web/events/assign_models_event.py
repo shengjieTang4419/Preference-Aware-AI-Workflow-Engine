@@ -10,7 +10,7 @@ class AssignModelsEvent(BusinessEvent):
 
     name = "分配 AI 模型"
     step = 6
-    total = 7
+    total = 9
 
     async def do_execute(self, ctx: EventContext) -> None:
         ctx.agent_model_assignments = await model_assignment_service.assign_models_for_crew(

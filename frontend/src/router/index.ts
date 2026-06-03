@@ -13,6 +13,7 @@ import Register from '@/views/Register.vue'
 import TemplateMarket from '@/views/TemplateMarket.vue'
 import Membership from '@/views/Membership.vue'
 import ExecutionFlow from '@/views/ExecutionFlow.vue'
+import PipelineProgress from '@/views/PipelineProgress.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -43,6 +44,11 @@ const router = createRouter({
       path: '/membership',
       name: 'Membership',
       component: Membership,
+    },
+    {
+      path: '/pipeline/:id',
+      name: 'PipelineProgress',
+      component: PipelineProgress,
     },
     {
       path: '/flow/:id',

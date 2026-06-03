@@ -14,6 +14,7 @@ from crewai_web.web.config import (
     TASKS_DIR,
     AGENTS_DIR,
 )
+from crewai_web.web.services.chat_execution_log_service import execution_log_service
 
 router = APIRouter(prefix="/executions", tags=["execution-flow"])
 
@@ -66,16 +67,47 @@ def _load_all_crews() -> dict[str, dict]:
 def get_execution_flow(exec_id: str):
     """获取执行流程完整数据，包括任务、智能体、依赖关系和执行策略"""
 
-    # 1. 读取执行记录
+    # 1. 读取执行记录 — 先查 executions/, 再查 execution_logs/
     exec_dir = EXECUTIONS_DIR / exec_id
     meta_file = exec_dir / "meta.json"
     meta = _read_json(meta_file)
+
     if not meta:
-        raise HTTPException(status_code=404, detail=f"执行记录 '{exec_id}' 不存在")
+        # Fallback: 从 execution_logs 读取
+        log = execution_log_service.get_execution(exec_id)
+        if not log:
+            raise HTTPException(status_code=404, detail=f"执行记录 '{exec_id}' 不存在")
+        # 转换为 meta 格式
+        meta = {
+            "id": log.id,
+            "status": log.status.value if hasattr(log.status, 'value') else log.status,
+            "requirement": log.scenario,
+            "crew_id": log.crew_id or "",
+            "created_at": log.start_time.isoformat() if log.start_time else "",
+            "started_at": log.start_time.isoformat() if log.start_time else "",
+            "completed_at": log.end_time.isoformat() if log.end_time else "",
+            "error_message": log.error_message,
+        }
 
     crew_id = meta.get("crew_id", "")
     if not crew_id:
-        raise HTTPException(status_code=400, detail="执行记录缺少 crew_id")
+        # Pipeline 还在执行中，返回最小流程数据
+        return {
+            "execution": {
+                "id": meta.get("id", exec_id),
+                "status": meta.get("status", "running"),
+                "requirement": meta.get("requirement", ""),
+                "crew_id": "",
+                "created_at": meta.get("created_at", ""),
+                "started_at": meta.get("started_at", ""),
+                "completed_at": "",
+                "error_message": None,
+            },
+            "crew": {"id": "", "name": "生成中...", "description": "", "process_type": "sequential", "agent_model_assignments": {}},
+            "tasks": [],
+            "agents": [],
+            "edges": [],
+        }
 
     # 2. 读取 crew 数据
     crew_data = _load_all_crews().get(crew_id)

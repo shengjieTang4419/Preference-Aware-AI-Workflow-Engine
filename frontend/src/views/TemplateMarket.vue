@@ -121,6 +121,19 @@
             {{ selectedConfig.placeholder }}
           </el-descriptions-item>
         </el-descriptions>
+        <!-- 魔法棒: 预调用技能 -->
+        <div v-if="selectedConfig.artifact_skills && selectedConfig.artifact_skills.length > 0" class="skill-section">
+          <div class="skill-section-title">🪄 预调用技能</div>
+          <div class="skill-list">
+            <div v-for="(skill, idx) in selectedConfig.artifact_skills" :key="skill" class="skill-item">
+              <span class="skill-index">{{ idx + 1 }}</span>
+              <span class="skill-name">{{ skill }}</span>
+            </div>
+          </div>
+          <div class="skill-chain-hint">
+            技能将按顺序执行，前一个的输出作为后一个的输入
+          </div>
+        </div>
         <div class="drawer-actions">
           <template v-if="isInstalled(selectedConfig.id)">
             <el-button type="primary" size="large" @click="handleUse(selectedConfig)">
@@ -341,6 +354,64 @@ onMounted(async () => {
   font-size: 64px;
   text-align: center;
   margin-bottom: 20px;
+}
+
+.skill-section {
+  margin-top: 20px;
+  padding: 16px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  border: 1px solid #e4e7ed;
+}
+
+.skill-section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 12px;
+}
+
+.skill-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skill-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #fff;
+  border-radius: 6px;
+  border: 1px solid #e4e7ed;
+}
+
+.skill-index {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.skill-name {
+  font-size: 14px;
+  color: #303133;
+  font-weight: 500;
+}
+
+.skill-chain-hint {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #909399;
+  text-align: center;
 }
 
 .drawer-actions {

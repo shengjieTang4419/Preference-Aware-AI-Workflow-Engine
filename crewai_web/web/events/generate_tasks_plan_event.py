@@ -11,7 +11,7 @@ class GenerateTasksPlanEvent(BusinessEvent):
 
     name = "规划任务"
     step = 2
-    total = 7
+    total = 9
 
     async def do_execute(self, ctx: EventContext) -> None:
         ctx.tasks_plan = await task_generator.generate_tasks_plan(ctx.scenario, ctx.topic, None)

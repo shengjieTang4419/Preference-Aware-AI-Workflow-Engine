@@ -10,7 +10,7 @@ class CreateTasksEvent(BusinessEvent):
 
     name = "创建任务"
     step = 5
-    total = 7
+    total = 9
 
     async def do_execute(self, ctx: EventContext) -> None:
         ctx.task_ids = task_generator.create_tasks(
